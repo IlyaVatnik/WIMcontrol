@@ -239,6 +239,7 @@ class MainWindow(ThreadedMainWindow):
         self.ui.pushButton_printer_move_bed_down.pressed.connect(self.printer_move_bed_down)
         
         self.ui.pushButton_static_measurements.toggled[bool].connect(self.static_measurements)
+        self.ui.pushButton_dynamical_measurements.toggled[bool].connect(self.dynamical_measurements)
         
         
         
@@ -302,7 +303,7 @@ class MainWindow(ThreadedMainWindow):
             
     def printer_move_bed_down(self):
         try:
-            self.printer.move_z(z=300,speed_mm_s=25)
+            self.printer.move_z(z=300,speed_mm_s=50)
             self.logText('Printer bed is down')
                 
         except Exception as e:
@@ -429,18 +430,20 @@ class MainWindow(ThreadedMainWindow):
                 try:
                     
                     self.dynamical_measurement=Dynamical_measurement(self.it,self.printer,self.params.dynamical,
-                                                                  self.saving_dir_path)
+                                                                     self.saving_dir_path,
+                                                                     self.params.it.channels,
+                                                                     self.params.it.FBGs)
                     self.add_thread([self.dynamical_measurement])
                     
                     self.dynamical_measurement.S_print[str].connect(self.logText)
                     self.dynamical_measurement.S_print_error[str].connect(self.logWarningText)
                     
-                    self.dynamical_measurement.S_finished.connect(lambda: self.ui.pushButton_static_measurements.setChecked(False))
+                    self.dynamical_measurement.S_finished.connect(lambda: self.ui.pushButton_dynamical_measurements.setChecked(False))
                     self.dynamical_measurement.S_finished.connect(self.kill_dynamical_measurement)
                     
                     self.dynamical_measurement.is_running=True
                     
-                    self.force_static_process.connect(self.dynamical_measurement.run)
+                    self.force_dynamical_process.connect(self.dynamical_measurement.run)
                     self.logText('Start dynamical measurement')
                     self.force_dynamical_process.emit()
     
@@ -451,7 +454,7 @@ class MainWindow(ThreadedMainWindow):
                 self.ui.pushButton_dynamical_measurements.setChecked(False)
         else:
             try:
-                self.static_measurement.is_running=False
+                self.dynamical_measurement.is_running=False
             except:
                 pass     
  
@@ -477,17 +480,33 @@ class MainWindow(ThreadedMainWindow):
             colors = plt.cm.tab10.colors
             times, channels, channel_list, FBGs_list,other_params = read_fbg_stream_raw_lp(self.file_to_load_path)
             self.logText('In this file there are channels {} and FBGs {} in these channels'.format(channel_list,FBGs_list))
+            self.figs_fbgs=[]
             for ch in self.params.it.channels:
                 N_FBG=len(self.params.it.FBGs[ch-1])
-                fig,axes=plt.subplots(nrows=N_FBG,sharex=True)
-                fig.supxlabel("Time, s")
-                fig.supylabel("FBG wavelength, nm")
-                for ii,FBG in enumerate(self.params.it.FBGs[ch-1]):
-                    axes[ii].plot(times - times[0], channels[ch][ii+1],color=colors[ii % len(colors)])
-                    axes[ii].set_title(f"FBG {FBG}", loc="left", fontsize=10, pad=2)
-                plt.suptitle('ch {}'.format(ch))
+                if N_FBG>1:
+                    
+                    fig,axes=plt.subplots(nrows=N_FBG,sharex=True)
+                    self.figs_fbgs.append(fig)
+                    fig.supxlabel("Time, s")
+                    fig.supylabel("FBG wavelength, nm")
+                    for ii,FBG in enumerate(self.params.it.FBGs[ch-1]):
+                        axes[ii].plot(times - times[0], channels[ch][ii+1],color=colors[ii % len(colors)])
+                        axes[ii].set_title(f"FBG {FBG}", loc="left", fontsize=10, pad=2)
+                    plt.suptitle('ch {} of "{}"'.format(ch, file_name.split('.')[0]))
+                                        
+
+                else: 
+                    fig=plt.figure()
+                    self.figs_fbgs.append(fig)
+                    plt.xlabel("Time, s")
+                    plt.ylabel("FBG wavelength, nm")
+                    plt.plot(times - times[0], channels[ch][self.params.it.FBGs[ch-1][0]])
+                    plt.title('FBG {}, ch {} of "{}"'.format(self.params.it.FBGs[ch-1][0],ch, file_name.split('.')[0]))
+                    
+               
                 plt.tight_layout()
                 plt.show()
+                
             self.type_of_plotted_data='fbgs' 
             self.logText('Other parameters of the record are {} '.format(other_params))       
             
@@ -538,7 +557,11 @@ class MainWindow(ThreadedMainWindow):
                 csv_line_saver(path+'//'+file_name, coords, signal, 'Coordinate, mm', 'Shift, nm')
                 
             elif self.type_of_plotted_data=='fbgs':
-                line = plt.gca().get_lines()[0]
+                ch=int(self.ui.comboBox_channel_to_plot_static_slice.currentText())
+                FBG=int(self.ui.comboBox_FBG_to_plot_static_slice.currentText())
+                index=self.params.it.FBGs[ch-1].index(FBG)
+                axis=self.figs_fbgs[ch-1].axes[index]
+                line = axis.get_lines()[0]
                 time = line.get_xdata()
                 shifts = line.get_ydata()
                 path=os.path.dirname(self.file_to_load_path)
@@ -549,7 +572,7 @@ class MainWindow(ThreadedMainWindow):
        # строки
                 
 
-            self.logText('Line saved')  
+            self.logText('Line saved to '+ path+'//'+file_name) 
         except Exception as e:
             self.logWarningText(str(e))
                 
@@ -566,6 +589,7 @@ class MainWindow(ThreadedMainWindow):
         D['it']=get_parameters(self.params.it)
         D['recording']=get_parameters(self.params.record)
         D['static']=get_parameters(self.params.static)
+        D['dynamical']=get_parameters(self.params.dynamical)
         D['main_window']=get_widget_values(self)
         
         
@@ -595,6 +619,7 @@ class MainWindow(ThreadedMainWindow):
                     set_parameters(self.params.it,Dicts['it'])
                     set_parameters(self.params.record,Dicts['recording'])
                     set_parameters(self.params.static,Dicts['static'])
+                    set_parameters(self.params.dynamical,Dicts['dynamical'])
                     set_widget_values(self, Dicts['main_window'])
                     
                 except KeyError as e:

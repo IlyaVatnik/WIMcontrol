@@ -284,218 +284,231 @@
        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
       </property>
      </widget>
-     <widget class="QPushButton" name="pushButton_plot_single_slice_of_static">
+     <widget class="QGroupBox" name="groupBox_2">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>100</y>
-        <width>141</width>
-        <height>31</height>
+        <x>20</x>
+        <y>90</y>
+        <width>731</width>
+        <height>121</height>
        </rect>
       </property>
-      <property name="text">
-       <string>Plot single slice across</string>
+      <property name="title">
+       <string>Inspect data</string>
       </property>
-     </widget>
-     <widget class="QComboBox" name="comboBox_axis_to_plot_static_slice">
-      <property name="geometry">
-       <rect>
-        <x>319</x>
-        <y>108</y>
-        <width>51</width>
-        <height>22</height>
-       </rect>
-      </property>
-      <item>
-       <property name="text">
-        <string>X</string>
+      <widget class="QPushButton" name="pushButton_save_single_line_to_csv">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>70</y>
+         <width>141</width>
+         <height>31</height>
+        </rect>
        </property>
-      </item>
-      <item>
        <property name="text">
-        <string>Y</string>
+        <string>Save single line to csv</string>
        </property>
-      </item>
-     </widget>
-     <widget class="QLineEdit" name="lineEdit_coordinate_to_plot_static_slice">
-      <property name="geometry">
-       <rect>
-        <x>210</x>
-        <y>103</y>
-        <width>81</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>250</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-      </property>
-     </widget>
-     <widget class="QComboBox" name="comboBox_channel_to_plot_static_slice">
-      <property name="geometry">
-       <rect>
-        <x>451</x>
-        <y>109</y>
-        <width>51</width>
-        <height>22</height>
-       </rect>
-      </property>
-      <item>
+      </widget>
+      <widget class="QPushButton" name="pushButton_plot_single_slice_of_static">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>20</y>
+         <width>141</width>
+         <height>31</height>
+        </rect>
+       </property>
        <property name="text">
-        <string>1</string>
+        <string>Plot single slice across</string>
        </property>
-      </item>
-      <item>
+      </widget>
+      <widget class="QComboBox" name="comboBox_axis_to_plot_static_slice">
+       <property name="geometry">
+        <rect>
+         <x>280</x>
+         <y>30</y>
+         <width>51</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <item>
+        <property name="text">
+         <string>X</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Y</string>
+        </property>
+       </item>
+      </widget>
+      <widget class="QLineEdit" name="lineEdit_coordinate_to_plot_static_slice">
+       <property name="geometry">
+        <rect>
+         <x>171</x>
+         <y>25</y>
+         <width>81</width>
+         <height>31</height>
+        </rect>
+       </property>
        <property name="text">
-        <string>2</string>
+        <string>250</string>
        </property>
-      </item>
-      <item>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+      <widget class="QComboBox" name="comboBox_FBG_to_plot_static_slice">
+       <property name="geometry">
+        <rect>
+         <x>540</x>
+         <y>30</y>
+         <width>51</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <item>
+        <property name="text">
+         <string>1</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>2</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>3</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>4</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>5</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>6</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>7</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>8</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>9</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>10</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>11</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>12</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>13</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>14</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>15</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>16</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>17</string>
+        </property>
+       </item>
+      </widget>
+      <widget class="QLabel" name="label_2">
+       <property name="geometry">
+        <rect>
+         <x>500</x>
+         <y>30</y>
+         <width>54</width>
+         <height>16</height>
+        </rect>
+       </property>
        <property name="text">
-        <string>3</string>
+        <string>FBG</string>
        </property>
-      </item>
-      <item>
+      </widget>
+      <widget class="QLabel" name="label">
+       <property name="geometry">
+        <rect>
+         <x>370</x>
+         <y>30</y>
+         <width>54</width>
+         <height>16</height>
+        </rect>
+       </property>
        <property name="text">
-        <string>4</string>
+        <string>Channel</string>
        </property>
-      </item>
-     </widget>
-     <widget class="QLabel" name="label">
-      <property name="geometry">
-       <rect>
-        <x>390</x>
-        <y>110</y>
-        <width>54</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Channel</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_2">
-      <property name="geometry">
-       <rect>
-        <x>520</x>
-        <y>110</y>
-        <width>54</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>FBG</string>
-      </property>
-     </widget>
-     <widget class="QComboBox" name="comboBox_FBG_to_plot_static_slice">
-      <property name="geometry">
-       <rect>
-        <x>560</x>
-        <y>110</y>
-        <width>51</width>
-        <height>22</height>
-       </rect>
-      </property>
-      <item>
-       <property name="text">
-        <string>1</string>
+      </widget>
+      <widget class="QComboBox" name="comboBox_channel_to_plot_static_slice">
+       <property name="geometry">
+        <rect>
+         <x>431</x>
+         <y>29</y>
+         <width>51</width>
+         <height>22</height>
+        </rect>
        </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>2</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>3</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>4</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>5</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>6</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>7</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>8</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>9</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>10</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>11</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>12</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>13</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>14</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>15</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>16</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>17</string>
-       </property>
-      </item>
-     </widget>
-     <widget class="QPushButton" name="pushButton_save_single_line_to_csv">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>150</y>
-        <width>141</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Save single line to csv</string>
-      </property>
+       <item>
+        <property name="text">
+         <string>1</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>2</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>3</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>4</string>
+        </property>
+       </item>
+      </widget>
      </widget>
     </widget>
    </widget>

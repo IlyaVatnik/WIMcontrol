@@ -23,7 +23,9 @@ class Dynamical_measurement(QObject):
                  it,
                  printer,
                  params,
-                 folder_path):
+                 folder_path,
+                 channels,
+                 FBGs):
         super().__init__()
         self.it=it
         self.printer=printer
@@ -35,8 +37,11 @@ class Dynamical_measurement(QObject):
                                          min_z=self.params.attach_min_z,
                                          max_z=self.params.attach_max_z)
         self.folder_path=folder_path
+        self.channels=channels
+        self.FBGs=FBGs
         
         self.is_running=False
+        
         
     def run(self,log=True):
 
@@ -55,7 +60,6 @@ class Dynamical_measurement(QObject):
         try:
             time_tic_1=time.time()
             for x in X_array:
-             
                     if log:
                         ii+=1
                         time_tic_2=time.time()
@@ -63,18 +67,26 @@ class Dynamical_measurement(QObject):
                         self.S_print.emit('Scanning at X={} , step {} of {}, time remaining={:.0f} min {:.1f} s'.format(x,ii,N_steps,time_remaining//60,np.mod(time_remaining,60)))
                         time_tic_1=time_tic_2
                    
-                    self.printer.safe_y_pass(x=x, y_start=self.params.y_start, y_end=self.params.y_start, z_safe=self.params.z_safe, z_contact=self.params.z_safe)
+                    self.printer.safe_y_pass(x=x,y_start=self.params.y_start, y_end=self.params.y_start,
+                                             z_safe=self.params.z_safe,z_contact=self.params.z_safe,
+                                             approach_speed_mm_s=velocity_mm_s)
+                    self.printer.move_z(z=self.params.z_contact, speed_mm_s=velocity_mm_s)
                     time_to_save=(self.params.y_stop-self.params.y_start)/self.params.y_velocity
                     path=self.folder_path+'//'+'x={} mm.fbgs'.format(x)
                     d={}
                     d['X']=x
                     d['bed_temp']=self.printer.get_bed_temperature()[0]
                     d['chamber_temp']=self.printer.get_chamber_temperature()[0]
-                    d['exp_params']=self.params
-                    record_to_file(self.it, self.folder_path, time_to_save+1,time_to_save+1,write_every_n=self.params.write_every_nth,params=d)
-                    self.printer.safe_y_pass(x=x, y_start=self.params.y_start, y_end=self.params.y_stop, z_safe=self.params.z_safe, z_contact=self.params.z_contact, travel_speed_mm_s=self.params.y_velocity)
+                    d['exp_params']=vars(self.params)
                     
-                        
+                    self.it.start_freq_stream()
+                    
+                    self.printer.move_absolute(x=x, y=self.params.y_stop, z=self.params.z_contact, speed_mm_s=self.params.y_velocity,wait=False)
+                    record_to_file(self.it, path, time_to_save+0.2,write_every_n=self.params.write_every_nth,
+                                   channels=self.channels,FBGs=self.FBGs,other_params=d)
+                    
+                    self.it.stop_freq_stream()
+                    self.printer.move_z(z=self.params.z_safe, speed_mm_s=velocity_mm_s)
                     if not self.is_running:
                         self.S_print_error.emit('Scanning interrupted')
                         return
@@ -84,3 +96,44 @@ class Dynamical_measurement(QObject):
             
         except Exception as e:
             self.S_print_error.emit('Error while dynamical measurement:' + str(e))
+
+if __name__=='__main__':
+    from AFR_interrogator.interrogator import Interrogator
+    from Printer_control.Printer import Printer, PrinterConfig
+    class Dynamical_meas_setup():
+        def __init__(self):      
+            self.attach_min_x = -25 
+            self.attach_max_x = 25
+            '''
+            Если вперёд по Y выступ 20 мм, назад 0:
+            attach_min_y = 0, attach_max_y = +20
+            '''
+            self.attach_min_y = -10.0
+            self.attach_max_y = 5
+            '''
+            Если колесо ниже сопла на 12 мм (выступ вниз, т.е. к столу), и вверх насадка не выступает:
+            attach_min_z = -12, attach_max_z = 0
+            '''
+            self.attach_min_z = -50.0
+            self.attach_max_z = 0.0
+            
+            self.x_start=250
+            self.x_stop=260
+            self.x_step=2
+            
+            self.y_start=120
+            self.y_stop=200
+            self.y_velocity=25
+            
+            self.z_safe=90
+            self.z_contact=71
+            
+            self.write_every_nth=10
+            
+    it = Interrogator('10.2.15.150','10.2.15.158')
+    printer=Printer(PrinterConfig(base_url="http://10.2.15.109:7125"))
+    folder_path=r"D:\Ilya\WIMcontrol\data"
+    params=Dynamical_meas_setup()
+    exp=Dynamical_measurement(it, printer, params, folder_path,[1],[[1,2,3]])
+    exp.is_running=True
+    exp.run()
