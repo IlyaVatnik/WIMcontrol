@@ -1,2 +1,5 @@
 /data
 *.pyc
+*.bak
+*.pyc
+*.pyc

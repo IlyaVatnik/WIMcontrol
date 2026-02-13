@@ -136,7 +136,7 @@ class Ui_Dialog(object):
         self.lineEdit_y_velocity.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.lineEdit_y_velocity.setObjectName("lineEdit_y_velocity")
         self.groupBox_7 = QtWidgets.QGroupBox(Dialog)
-        self.groupBox_7.setGeometry(QtCore.QRect(20, 510, 251, 71))
+        self.groupBox_7.setGeometry(QtCore.QRect(20, 510, 371, 71))
         self.groupBox_7.setObjectName("groupBox_7")
         self.lineEdit_write_every_nth = QtWidgets.QLineEdit(self.groupBox_7)
         self.lineEdit_write_every_nth.setGeometry(QtCore.QRect(100, 30, 31, 20))
@@ -148,6 +148,9 @@ class Ui_Dialog(object):
         self.label_33 = QtWidgets.QLabel(self.groupBox_7)
         self.label_33.setGeometry(QtCore.QRect(10, 30, 71, 16))
         self.label_33.setObjectName("label_33")
+        self.checkBox_plot_live_plot = QtWidgets.QCheckBox(self.groupBox_7)
+        self.checkBox_plot_live_plot.setGeometry(QtCore.QRect(250, 30, 101, 17))
+        self.checkBox_plot_live_plot.setObjectName("checkBox_plot_live_plot")
 
         self.retranslateUi(Dialog)
         self.buttonBox.accepted.connect(Dialog.accept) # type: ignore
@@ -192,6 +195,7 @@ class Ui_Dialog(object):
         self.lineEdit_write_every_nth.setText(_translate("Dialog", "10"))
         self.label_35.setText(_translate("Dialog", "th frame"))
         self.label_33.setText(_translate("Dialog", "Save each "))
+        self.checkBox_plot_live_plot.setText(_translate("Dialog", "plot live plot"))
 
 
 if __name__ == "__main__":

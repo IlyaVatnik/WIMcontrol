@@ -31,7 +31,7 @@ class Static_measurement_params():
         self.y_step=1
         
         self.z_safe=130
-        self.z_contact=120
+        self.z_contact=122
         
         self.file_name_to_save_static_meas='1'
 
@@ -84,7 +84,7 @@ class Static_measurement(QObject):
                         ii+=1
                         time_tic_2=time.time()
                         time_remaining=(N_steps-ii)*(time_tic_2-time_tic_1)
-                        self.S_print.emit('Scanning at X={} Y={}, step {} of {}, time remaining={:.0f} min {:.1f} s'.format(x,y,ii,N_steps,time_remaining//60,np.mod(time_remaining,60)))
+                        self.S_print.emit('Scanning at X={} Y={}, step {} of {}, time elapsed for step {:.1f} s, time remaining={:.0f} min {:.1f} s'.format(x,y,ii,N_steps,(time_tic_2-time_tic_1),time_remaining//60,np.mod(time_remaining,60)))
                         time_tic_1=time_tic_2
                    
                     self.printer.safe_y_pass(x=x, y_start=y, y_end=y, z_safe=self.params.z_safe, z_contact=self.params.z_safe)

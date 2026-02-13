@@ -470,6 +470,8 @@ class MainWindow(ThreadedMainWindow):
             self.static_processor=Static_processor(self.file_to_load_path,self.params.it.channels,self.params.it.FBGs)
             # self.add_thread(self.static_processor)
             self.static_processor.S_print_error[str].connect(self.logWarningText)
+            self.static_processor.S_print[str].connect(self.logText)
+            self.static_processor.indicate_maxima_of_maps()
             self.static_processor.plot_all_3d_plots()
             self.type_of_plotted_data='static3d'
             
@@ -480,6 +482,8 @@ class MainWindow(ThreadedMainWindow):
             if not hasattr(self, "static_processor"):
                 self.static_processor=Static_processor(self.file_to_load_path,self.params.it.channels,self.params.it.FBGs)
                 self.static_processor.S_print_error[str].connect(self.logWarningText)
+                self.static_processor.S_print[str].connect(self.logText)
+                self.static_processor.indicate_maxima_of_maps()
             self.static_processor.plot_along_coord(float(self.ui.lineEdit_coordinate_to_plot_static_slice.text()),
                                                    self.ui.comboBox_axis_to_plot_static_slice.currentText(), 
                                                    int(self.ui.comboBox_channel_to_plot_static_slice.currentText()),

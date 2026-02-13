@@ -7,7 +7,7 @@ Created on Thu Feb 12 14:41:16 2026
 from PyQt5.QtCore import pyqtSignal, QObject
 import time
 import numpy as np
-from AFR_interrogator.FBGRecorder import record_to_file
+from AFR_interrogator.FBGRecorder import record_to_file, record_and_plot
 
 __version__='1.1'
 __date__ = '2026.02.13'
@@ -41,6 +41,8 @@ class Dynamical_measurement_params():
         self.z_contact=71
         
         self.write_every_nth=10
+        
+        self.plot_live_plot=False
         
 
 class Dynamical_measurement(QObject):
@@ -113,8 +115,13 @@ class Dynamical_measurement(QObject):
                     self.it.start_freq_stream()
                     
                     self.printer.move_absolute(x=x, y=self.params.y_stop, z=self.params.z_contact, speed_mm_s=self.params.y_velocity,wait=False)
-                    record_to_file(self.it, path, time_to_save+0.2,write_every_n=self.params.write_every_nth,
-                                   channels=self.channels,FBGs=self.FBGs,other_params=d)
+                    if not self.plot_live_plot:
+                        record_to_file(self.it, path, time_to_save+0.2,write_every_n=self.params.write_every_nth,
+                                       channels=self.channels,FBGs=self.FBGs,other_params=d)
+                    else:
+                        record_and_plot(self.it, path, time_to_save+0.2,write_every_n=self.params.write_every_nth,
+                                       channels=self.channels,FBGs=self.FBGs,other_params=d,
+                                       plot_channels=self.channels,plot_FBGs=self.FBGs)
                     
                     self.it.stop_freq_stream()
                     self.printer.move_z(z=self.params.z_safe, speed_mm_s=velocity_mm_s)
