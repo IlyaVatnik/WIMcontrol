@@ -61,7 +61,7 @@ class Static_measurement(QObject):
         
         self.is_running=False
         
-    def run(self,log_time=True,log_data=False):
+    def run(self,log_time=True,log_data=True):
 
         ### main loop
 

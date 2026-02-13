@@ -20,7 +20,7 @@ def main():
     main_app.show()
     
     # Uncomment only if application doesn't finish properly
-    sys.exit(app.exec())
+    # sys.exit(app.exec())
     return main_app
  
 
