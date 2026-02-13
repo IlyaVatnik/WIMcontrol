@@ -9,8 +9,39 @@ import time
 import numpy as np
 from AFR_interrogator.FBGRecorder import record_to_file
 
-__version__='1.0'
-__date__ = '2026.02.12'
+__version__='1.1'
+__date__ = '2026.02.13'
+
+class Dynamical_measurement_params():
+    def __init__(self):      
+        self.attach_min_x = -25 
+        self.attach_max_x = 25
+        '''
+        Если вперёд по Y выступ 20 мм, назад 0:
+        attach_min_y = 0, attach_max_y = +20
+        '''
+        self.attach_min_y = -10.0
+        self.attach_max_y = 5
+        '''
+        Если колесо ниже сопла на 12 мм (выступ вниз, т.е. к столу), и вверх насадка не выступает:
+        attach_min_z = -12, attach_max_z = 0
+        '''
+        self.attach_min_z = -50.0
+        self.attach_max_z = 0.0
+        
+        self.x_start=250
+        self.x_stop=260
+        self.x_step=2
+        
+        self.y_start=120
+        self.y_stop=200
+        self.y_velocity=25
+        
+        self.z_safe=90
+        self.z_contact=71
+        
+        self.write_every_nth=10
+        
 
 class Dynamical_measurement(QObject):
   
@@ -100,40 +131,12 @@ class Dynamical_measurement(QObject):
 if __name__=='__main__':
     from AFR_interrogator.interrogator import Interrogator
     from Printer_control.Printer import Printer, PrinterConfig
-    class Dynamical_meas_setup():
-        def __init__(self):      
-            self.attach_min_x = -25 
-            self.attach_max_x = 25
-            '''
-            Если вперёд по Y выступ 20 мм, назад 0:
-            attach_min_y = 0, attach_max_y = +20
-            '''
-            self.attach_min_y = -10.0
-            self.attach_max_y = 5
-            '''
-            Если колесо ниже сопла на 12 мм (выступ вниз, т.е. к столу), и вверх насадка не выступает:
-            attach_min_z = -12, attach_max_z = 0
-            '''
-            self.attach_min_z = -50.0
-            self.attach_max_z = 0.0
-            
-            self.x_start=250
-            self.x_stop=260
-            self.x_step=2
-            
-            self.y_start=120
-            self.y_stop=200
-            self.y_velocity=25
-            
-            self.z_safe=90
-            self.z_contact=71
-            
-            self.write_every_nth=10
+
             
     it = Interrogator('10.2.15.150','10.2.15.158')
     printer=Printer(PrinterConfig(base_url="http://10.2.15.109:7125"))
     folder_path=r"D:\Ilya\WIMcontrol\data"
-    params=Dynamical_meas_setup()
-    exp=Dynamical_measurement(it, printer, params, folder_path,[1],[[1,2,3]])
-    exp.is_running=True
-    exp.run()
+    params=Dynamical_measurement_params()
+    measure=Dynamical_measurement(it, printer, params, folder_path,[1],[[1,2,3]])
+    measure.is_running=True
+    measure.run()

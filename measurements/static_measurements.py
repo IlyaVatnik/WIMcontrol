@@ -2,8 +2,38 @@ from PyQt5.QtCore import pyqtSignal, QObject
 import time
 import numpy as np
 
-__version__='1.0'
-__date__ = '2026.02.12'
+__version__='1.1'
+__date__ = '2026.02.13'
+
+class Static_measurement_params():
+    def __init__(self):      
+        self.attach_min_x = -15
+        self.attach_max_x = 15
+        '''
+        Если вперёд по Y выступ 20 мм, назад 0:
+        attach_min_y = 0, attach_max_y = +20
+        '''
+        self.attach_min_y = -5
+        self.attach_max_y = 0
+        '''
+        Если колесо ниже сопла на 12 мм (выступ вниз, т.е. к столу), и вверх насадка не выступает:
+        attach_min_z = -12, attach_max_z = 0
+        '''
+        self.attach_min_z = -100.0
+        self.attach_max_z = 0
+        
+        self.x_start=247
+        self.x_stop=265
+        self.x_step=1
+        
+        self.y_start=160
+        self.y_stop=180
+        self.y_step=1
+        
+        self.z_safe=130
+        self.z_contact=120
+        
+        self.file_name_to_save_static_meas='1'
 
 class Static_measurement(QObject):
   

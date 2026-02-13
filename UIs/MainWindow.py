@@ -5,8 +5,8 @@ Created on Wed Jan 21 11:32:18 2026
 @author: Илья
 """
 
-__version__='1.0'
-__date__ = '2026.02.12'
+__version__='1.1'
+__date__ = '2026.02.13'
 
 import os
     
@@ -26,6 +26,10 @@ from Printer_control.Printer import Printer, PrinterConfig
 from AFR_interrogator.interrogator import Interrogator
 from AFR_interrogator.FBGRecorder import read_fbg_stream_raw_lp
 from processing.process_static_data import Static_meas_processor as Static_processor
+from measurements.static_measurements import Static_measurement as Static_measurement
+from measurements.static_measurements import Static_measurement_params as Static_measurement_params
+from measurements.dynamical_measurements import Dynamical_measurement as Dynamical_measurement
+from measurements.dynamical_measurements import Dynamical_measurement_params as Dynamical_measurement_params
 
 
 from UIs.MainWindowUI import Ui_MainWindow
@@ -58,66 +62,9 @@ class Params_printer():
     def __init__(self):
         self.url="http://10.2.15.109:7125"
     
-class Static_meas():
-    def __init__(self):      
-        self.attach_min_x = 0.0
-        self.attach_max_x = 0.0
-        '''
-        Если вперёд по Y выступ 20 мм, назад 0:
-        attach_min_y = 0, attach_max_y = +20
-        '''
-        self.attach_min_y = 0.0
-        self.attach_max_y = 0.0
-        '''
-        Если колесо ниже сопла на 12 мм (выступ вниз, т.е. к столу), и вверх насадка не выступает:
-        attach_min_z = -12, attach_max_z = 0
-        '''
-        self.attach_min_z = 0.0
-        self.attach_max_z = 0.0
+
         
-        self.x_start=140
-        self.x_stop=160
-        self.x_step=1
-        
-        self.y_start=140
-        self.y_stop=160
-        self.y_step=1
-        
-        self.z_safe=200
-        self.z_contact=150
-        
-        self.file_name_to_save_static_meas='1'
-        
-class Dynamical_meas():
-    def __init__(self):      
-        self.attach_min_x = 0.0
-        self.attach_max_x = 0.0
-        '''
-        Если вперёд по Y выступ 20 мм, назад 0:
-        attach_min_y = 0, attach_max_y = +20
-        '''
-        self.attach_min_y = 0.0
-        self.attach_max_y = 0.0
-        '''
-        Если колесо ниже сопла на 12 мм (выступ вниз, т.е. к столу), и вверх насадка не выступает:
-        attach_min_z = -12, attach_max_z = 0
-        '''
-        self.attach_min_z = 0.0
-        self.attach_max_z = 0.0
-        
-        self.x_start=140
-        self.x_stop=160
-        self.x_step=1
-        
-        self.y_start=140
-        self.y_stop=160
-        self.y_velocity=1
-        
-        self.z_safe=200
-        self.z_contact=150
-        
-        self.write_every_nth=10
-        # self.file_name_to_save_dynami_meas='1'
+
         
         
 
@@ -127,8 +74,8 @@ class Params():
         self.it=Params_it()
         self.printer=Params_printer()
         self.record=Params_recording()
-        self.static=Static_meas()
-        self.dynamical=Dynamical_meas()
+        self.static=Static_measurement_params()
+        self.dynamical=Dynamical_measurement_params()
 
 
 class ThreadedMainWindow(QMainWindow):
@@ -386,7 +333,6 @@ class MainWindow(ThreadedMainWindow):
             msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
             returnValue = msg.exec()
             if returnValue == QMessageBox.Ok:  
-                from measurements.static_measurements import Static_measurement as Static_measurement
                 try:
                     
                     self.static_measurement=Static_measurement(self.it,self.printer,self.params.static,
@@ -426,7 +372,6 @@ class MainWindow(ThreadedMainWindow):
             msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
             returnValue = msg.exec()
             if returnValue == QMessageBox.Ok:  
-                from measurements.dynamical_measurements import Dynamical_measurement as Dynamical_measurement
                 try:
                     
                     self.dynamical_measurement=Dynamical_measurement(self.it,self.printer,self.params.dynamical,
