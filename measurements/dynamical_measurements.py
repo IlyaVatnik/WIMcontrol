@@ -4,13 +4,14 @@ Created on Thu Feb 12 14:41:16 2026
 
 @author: Ilya
 """
-from PyQt5.QtCore import pyqtSignal, QObject
+from PyQt5.QtCore import pyqtSignal, QObject, QTimer
 import time
 import numpy as np
-from AFR_interrogator.FBGRecorder import record_to_file, record_and_plot
+from AFR_interrogator.FBGRecorder import record_to_file_from_queue, FrameFanout
+from queue import Queue
 
-__version__='1.1'
-__date__ = '2026.02.13'
+__version__='1.2'
+__date__ = '2026.02.26'
 
 class Dynamical_measurement_params():
     def __init__(self):      
@@ -35,12 +36,12 @@ class Dynamical_measurement_params():
         
         self.y_start=120
         self.y_stop=200
-        self.y_velocity=25
+        self.y_velocity=50
         
         self.z_safe=90
-        self.z_contact=71
+        self.z_contact=70
         
-        self.write_every_nth=10
+        self.write_every_nth=3
         
         self.plot_live_plot=False
         
@@ -51,7 +52,7 @@ class Dynamical_measurement(QObject):
     S_print=pyqtSignal(str) # signal used to print into main text browser
     S_print_error=pyqtSignal(str) # signal used to print errors into main text browser
     S_finished=pyqtSignal()  # signal to finish
-
+    S_plot_queue_ready = pyqtSignal(object)   # передаем Queue для GUI live-plot
     def __init__(self,
                  it,
                  printer,
@@ -62,7 +63,7 @@ class Dynamical_measurement(QObject):
         super().__init__()
         self.it=it
         self.printer=printer
-        self.params=params
+        self.params=params ## Dynamical_measurement_params
         self.printer.set_attached_limits(min_x=self.params.attach_min_x,
                                          max_x=self.params.attach_max_x,
                                          min_y=self.params.attach_min_y,
@@ -79,12 +80,14 @@ class Dynamical_measurement(QObject):
     def run(self,log=True):
 
         ### main loop
-
+        if self.params.y_velocity>self.printer.cfg.max_velocity_mm_s:
+            self.S_print_error.emit('Velocity along y exceeds the limits set for the printer in printer configuration script')
+            self.S_print_error.emit('Stop dynamical measurements')
+            return
         
-       
         velocity_mm_s=100
-        accel_mm_s2=500
-        self.printer.set_motion_limits(velocity_mm_s=velocity_mm_s, accel_mm_s2=accel_mm_s2)
+       
+
         # self.printer.set_bed_temperature(30)
 
         X_array=np.arange(self.params.x_start,self.params.x_stop,self.params.x_step)
@@ -92,7 +95,24 @@ class Dynamical_measurement(QObject):
         N_steps=len(X_array)
         try:
             time_tic_1=time.time()
+            # Очереди для fanout
+
+            fan = FrameFanout(self.it, idle_sleep=0.0002)
+            fan.start()
+
+            # Сообщаем GUI, что можно подключаться к q_plot (если включен live plot)
+
+            if self.params.plot_live_plot:
+                q_plot = Queue(maxsize=10000)
+                fan.add_consumer_queue(q_plot)
+                self.S_plot_queue_ready.emit(q_plot)
+
+    
+            time_to_save=1.3*calc_time_of_moving(self.params.y_stop-self.params.y_start,self.params.y_velocity,self.printer.cfg.max_accel_mm_s2)
+            self.S_print.emit('Time for one movement is {:.2f} s'.format(time_to_save))
             for x in X_array:
+
+                    
                     if log:
                         ii+=1
                         time_tic_2=time.time()
@@ -104,36 +124,85 @@ class Dynamical_measurement(QObject):
                                              z_safe=self.params.z_safe,z_contact=self.params.z_safe,
                                              approach_speed_mm_s=velocity_mm_s)
                     self.printer.move_z(z=self.params.z_contact, speed_mm_s=velocity_mm_s)
-                    time_to_save=(self.params.y_stop-self.params.y_start)/self.params.y_velocity
+                    
+                    
+                    
+                    
                     path=self.folder_path+'//'+'x={} mm.fbgs'.format(x)
                     d={}
                     d['X']=x
                     d['bed_temp']=self.printer.get_bed_temperature()[0]
                     d['chamber_temp']=self.printer.get_chamber_temperature()[0]
-                    d['exp_params']=vars(self.params)
+                    d['experiment_params']=vars(self.params)
                     
+                    
+                    # self.it.start_freq_stream(self.params.rep_rate if hasattr(self.params, "rep_rate") else None)
                     self.it.start_freq_stream()
+                    q_rec = Queue(maxsize=50000)
+                    fan.add_consumer_queue(q_rec)
+                    time.sleep(0.2)
                     
-                    self.printer.move_absolute(x=x, y=self.params.y_stop, z=self.params.z_contact, speed_mm_s=self.params.y_velocity,wait=False)
-                    if not self.plot_live_plot:
-                        record_to_file(self.it, path, time_to_save+0.2,write_every_n=self.params.write_every_nth,
-                                       channels=self.channels,FBGs=self.FBGs,other_params=d)
-                    else:
-                        record_and_plot(self.it, path, time_to_save+0.2,write_every_n=self.params.write_every_nth,
-                                       channels=self.channels,FBGs=self.FBGs,other_params=d,
-                                       plot_channels=self.channels,plot_FBGs=self.FBGs)
+                    self.printer.move_absolute(x=x, y=self.params.y_stop, z=self.params.z_contact,
+                                               speed_mm_s=self.params.y_velocity, wait=False)
+     
+               
                     
+                    # Запись (без GUI) — из q_rec
+                    record_to_file_from_queue(
+                        it=self.it,
+                        q_rec=q_rec,
+                        filepath=path,
+                        duration_sec=time_to_save,
+                        write_every_n=self.params.write_every_nth,
+                        channels=self.channels,
+                        FBGs=self.FBGs,
+                        other_params=d,
+                        warmup_sec=0.1*time_to_save
+                    )
+                    
+                    fan.remove_consumer_queue(q_rec)
                     self.it.stop_freq_stream()
+                    # self.it.stop_freq_stream()
+                    
+                    # if not self.params.plot_live_plot:
+                    #     record_to_file(self.it, path, time_to_save+0.2,write_every_n=self.params.write_every_nth,
+                    #                    channels=self.channels,FBGs=self.FBGs,other_params=d)
+                    # else:
+                    #     self._stop_all, stats = record_and_plot(self.it, path, time_to_save+0.2,write_every_n=self.params.write_every_nth,
+                    #                    channels=self.channels,FBGs=self.FBGs,other_params=d,
+                    #                    plot_channels=self.channels,plot_FBGs=self.FBGs)
+                    #     QTimer.singleShot(int((time_to_save+0.2) * 1000), self._stop_all)
+                    
+                    # self.it.stop_freq_stream()
+                    
+                    
                     self.printer.move_z(z=self.params.z_safe, speed_mm_s=velocity_mm_s)
                     if not self.is_running:
                         self.S_print_error.emit('Scanning interrupted')
+                        self.it.stop_freq_stream()
+                        fan.stop(timeout=1.0)
                         return
                         
             self.S_print.emit('Dynamical scanning finished')
             self.S_finished.emit()
-            
+            # Останов fanout и потока
+            fan.stop(timeout=1.0)
+            self.it.stop_freq_stream()
         except Exception as e:
             self.S_print_error.emit('Error while dynamical measurement:' + str(e))
+            fan.stop(timeout=1.0)
+            self.it.stop_freq_stream()
+
+def calc_time_of_moving(length, speed,acc):
+    t_acc=speed/acc
+    length_acc=t_acc**2*acc
+    if length/2<=length_acc:
+        time=2*np.sqrt(length/acc)
+        return time
+    else:
+        length_stable_speed=length-2*length_acc
+        time_stable_speed=length_stable_speed/speed
+        return 2*t_acc+time_stable_speed
 
 if __name__=='__main__':
     from AFR_interrogator.interrogator import Interrogator
@@ -146,4 +215,5 @@ if __name__=='__main__':
     params=Dynamical_measurement_params()
     measure=Dynamical_measurement(it, printer, params, folder_path,[1],[[1,2,3]])
     measure.is_running=True
+    measure.params.plot_live_plot=True
     measure.run()

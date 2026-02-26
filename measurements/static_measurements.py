@@ -2,8 +2,8 @@ from PyQt5.QtCore import pyqtSignal, QObject
 import time
 import numpy as np
 
-__version__='1.1'
-__date__ = '2026.02.13'
+__version__='1.2'
+__date__ = '2026.02.25'
 
 class Static_measurement_params():
     def __init__(self):      
@@ -92,15 +92,26 @@ class Static_measurement(QObject):
                     time.sleep(0.1)
             
                     FBGs_pristine=self.it.get_averaged_single_FBG_measurement()
-                    if log_data:
-                        self.S_print.emit(str(FBGs_pristine))
+
+
                     
                     self.printer.move_absolute(x=x, y=y, z=self.params.z_contact, speed_mm_s=velocity_mm_s)
                     time.sleep(0.1)
             
                     FBGs_pressured=self.it.get_averaged_single_FBG_measurement()
+                    
                     if log_data:
-                        self.S_print.emit(str(FBGs_pressured))
+                        s = '  Out of contact: ' + ", ".join(
+                            "[" + ", ".join(f"{x:.3f}" for x in inner) + "]"
+                            for inner in FBGs_pristine
+                            ) + "]"
+                        self.S_print.emit(s)
+                        s = '       In contact: ' + ", ".join(
+                            "[" + ", ".join(f"{x:.3f}" for x in inner) + "]"
+                            for inner in FBGs_pressured
+                            ) + "]"
+                        self.S_print.emit(s)
+                        
                     temp_bed=self.printer.get_bed_temperature()[0]
                     temp_chamber=self.printer.get_chamber_temperature()[0]
                     

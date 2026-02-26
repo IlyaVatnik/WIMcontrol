@@ -5,8 +5,8 @@ Created on Wed Jan 21 11:32:18 2026
 @author: Илья
 """
 
-__version__='1.1'
-__date__ = '2026.02.13'
+__version__='1.2'
+__date__ = '2026.02.26'
 
 import os
     
@@ -25,6 +25,7 @@ import time
 from Printer_control.Printer import Printer, PrinterConfig
 from AFR_interrogator.interrogator import Interrogator
 from AFR_interrogator.FBGRecorder import read_fbg_stream_raw_lp
+from AFR_interrogator.FBGRecorder import live_plot_wavelengths
 from processing.process_static_data import Static_meas_processor as Static_processor
 from measurements.static_measurements import Static_measurement as Static_measurement
 from measurements.static_measurements import Static_measurement_params as Static_measurement_params
@@ -366,6 +367,45 @@ class MainWindow(ThreadedMainWindow):
     def kill_static_measurement(self):
         del self.static_measurement
           
+
+
+    def _start_live_plot_from_queue(self, q_plot):
+        """
+        Запускается в GUI потоке. Создаёт matplotlib окна и подключает их к очереди q_plot,
+        которую наполняет FrameFanout из рабочего потока.
+        """
+        try:
+            # Закроем предыдущие плоты (если были)
+            if hasattr(self, "live_plot_stops"):
+                for s in self.live_plot_stops:
+                    try:
+                        s()
+                    except Exception:
+                        pass
+    
+            self.live_plot_stops = []
+            self.live_plot_figs = []
+    
+            # ВНИМАНИЕ: live_plot_wavelengths ожидает fbg_indices 0-based!
+            for ch in self.params.it.channels:
+                fbg_indices_0 = [int(i) - 1 for i in self.params.it.FBGs[ch-1]]  # 1-based -> 0-based
+                stop, fig = live_plot_wavelengths(
+                    it=self.it,
+                    channel=ch,
+                    fbg_indices=fbg_indices_0,
+                    window_sec=10.0,
+                    max_fps=30,
+                    blocking=False,
+                    source_queue=q_plot,   # ключевой момент: НЕ читаем it.pop_freq_frame в GUI
+                    use_subplots=True
+                )
+                self.live_plot_stops.append(stop)
+                self.live_plot_figs.append(fig)
+    
+        except Exception as e:
+            self.logWarningText("Live plot start error: " + str(e))
+            
+            
     def dynamical_measurements(self,pressed):
         if pressed:
             msg=QMessageBox(2, 'Warning', 'Do you want to start dynamical scanning? Please ensure there are proper scanning settings')
@@ -382,6 +422,7 @@ class MainWindow(ThreadedMainWindow):
                     
                     self.dynamical_measurement.S_print[str].connect(self.logText)
                     self.dynamical_measurement.S_print_error[str].connect(self.logWarningText)
+                    self.dynamical_measurement.S_plot_queue_ready.connect(self._start_live_plot_from_queue)
                     
                     self.dynamical_measurement.S_finished.connect(lambda: self.ui.pushButton_dynamical_measurements.setChecked(False))
                     self.dynamical_measurement.S_finished.connect(self.kill_dynamical_measurement)
@@ -400,6 +441,11 @@ class MainWindow(ThreadedMainWindow):
         else:
             try:
                 self.dynamical_measurement.is_running=False
+                if hasattr(self, "live_plot_stops"):
+                    for s in self.live_plot_stops:
+                        try: s()
+                        except Exception: pass
+                    self.live_plot_stops = []
             except:
                 pass     
  
@@ -437,7 +483,7 @@ class MainWindow(ThreadedMainWindow):
                     for ii,FBG in enumerate(self.params.it.FBGs[ch-1]):
                         axes[ii].plot(times - times[0], channels[ch][ii+1],color=colors[ii % len(colors)])
                         axes[ii].set_title(f"FBG {FBG}", loc="left", fontsize=10, pad=2)
-                    plt.suptitle('ch {} of "{}"'.format(ch, file_name.split('.')[0]))
+                    plt.suptitle('ch {} of {}, v_y={} mm/s'.format(ch, file_name.split('.')[0], other_params['experiment_params']['y_velocity']))
                                         
 
                 else: 
@@ -516,7 +562,7 @@ class MainWindow(ThreadedMainWindow):
                 path=os.path.dirname(self.file_to_load_path)
                 source_file_name=os.path.basename(self.file_to_load_path).split('.')[0]         
                 file_name=source_file_name+'.csv'
-                csv_line_saver(path+'//'+file_name, time, shifts, 'Time, s', 'Shift, nm')
+                csv_line_saver(path+'//'+file_name, time, shifts, 'Time, s', 'Wavelength, nm')
                 
        # строки
                 
