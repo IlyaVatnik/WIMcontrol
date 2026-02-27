@@ -5,8 +5,8 @@ Created on Wed Jan 21 11:32:18 2026
 @author: Илья
 """
 
-__version__='1.2'
-__date__ = '2026.02.26'
+__version__='1.3'
+__date__ = '2026.02.27'
 
 import os
     
@@ -27,7 +27,10 @@ from AFR_interrogator.interrogator import Interrogator
 from AFR_interrogator.FBGRecorder import read_fbg_stream_raw_lp
 from AFR_interrogator.FBGRecorder import live_plot_wavelengths
 from processing.process_static_data import Static_meas_processor as Static_processor
+from processing.process_spectra import Spectra_meas_processor as Spectra_meas_processor
+
 from measurements.static_measurements import Static_measurement as Static_measurement
+
 from measurements.static_measurements import Static_measurement_params as Static_measurement_params
 from measurements.dynamical_measurements import Dynamical_measurement as Dynamical_measurement
 from measurements.dynamical_measurements import Dynamical_measurement_params as Dynamical_measurement_params
@@ -458,7 +461,7 @@ class MainWindow(ThreadedMainWindow):
         self.ui.label_folder_to_save.setText(self.saving_dir_path+'\\')
        
     def choose_file_to_load(self):
-        DataFilePath= str(QFileDialog.getOpenFileName(self, "Select Data File",'','*.fbgs *.spectrum *.static' )).split("\',")[0].split("('")[1]
+        DataFilePath= str(QFileDialog.getOpenFileName(self, "Select Data File",'','*.fbgs *.spectrum *.static *.spectra' )).split("\',")[0].split("('")[1]
         if DataFilePath=='':
             self.logWarningText('file is not chosen or previous choice is preserved')
         self.file_to_load_path=DataFilePath
@@ -483,7 +486,7 @@ class MainWindow(ThreadedMainWindow):
                     for ii,FBG in enumerate(self.params.it.FBGs[ch-1]):
                         axes[ii].plot(times - times[0], channels[ch][ii+1],color=colors[ii % len(colors)])
                         axes[ii].set_title(f"FBG {FBG}", loc="left", fontsize=10, pad=2)
-                    plt.suptitle('ch {} of {}, v_y={} mm/s'.format(ch, file_name.split('.')[0], other_params['experiment_params']['y_velocity']))
+                    plt.suptitle('ch {} of {}, v_y={} mm/s'.format(ch, file_name.split('.')[0], other_params['y_velocity']))
                                         
 
                 else: 
@@ -520,6 +523,14 @@ class MainWindow(ThreadedMainWindow):
             self.static_processor.indicate_maxima_of_maps()
             self.static_processor.plot_all_3d_plots()
             self.type_of_plotted_data='static3d'
+            
+        elif file_name.split('.')[1]=='spectra':
+            self.spectra_processor=Spectra_meas_processor(self.file_to_load_path,self.params.it.channels)
+            self.spectra_processor.S_print_error[str].connect(self.logWarningText)
+            self.spectra_processor.S_print[str].connect(self.logText)
+            self.spectra_processor.plot_3d()
+            self.type_of_plotted_data='spectra'
+            
             
 
       
