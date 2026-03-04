@@ -5,8 +5,8 @@ Created on Wed Jan 21 11:32:18 2026
 @author: Илья
 """
 
-__version__='1.3'
-__date__ = '2026.02.27'
+__version__='1.4'
+__date__ = '2026.03.04'
 
 import os
     
@@ -23,9 +23,11 @@ import time
 
 
 from Printer_control.Printer import Printer, PrinterConfig
-from AFR_interrogator.interrogator import Interrogator
-from AFR_interrogator.FBGRecorder import read_fbg_stream_raw_lp
-from AFR_interrogator.FBGRecorder import live_plot_wavelengths
+from AFR_interrogator.interrogator import Interrogator, Params_it
+from AFR_interrogator.FBGRecorder import (read_fbg_stream_raw_lp,
+                                          start_live_plot_session,record_to_file,record_and_plot,
+                                          record_spectra_to_file,
+                                          live_plot_wavelengths)
 from processing.process_static_data import Static_meas_processor as Static_processor
 from processing.process_spectra import Spectra_meas_processor as Spectra_meas_processor
 
@@ -39,21 +41,6 @@ from measurements.dynamical_measurements import Dynamical_measurement_params as 
 from UIs.MainWindowUI import Ui_MainWindow
 
 
-class Params_it():
-    def __init__(self):
-        self.it_IP='10.2.60.38'
-        self.PC_IP='10.2.60.33'
-        self.FBGs=[[1,2,3]]
-        self.channels=[1]
-        self.gains_auto=[0,0,0,0]
-        self.gains_manual=[1,1,1,1]
-        self.thresholds=[3000,3000,3000,3000]
-        self.averaging_time_for_single_FBG_measurement=0.5
-        self.rep_rate=2000
-        self.recording_duration=10
-        self.write_every_nth=10
-        self.plot_live_while_recording=False
-        
         
 class Params_recording():
     def __init__(self):      
@@ -61,13 +48,9 @@ class Params_recording():
         self.recording_duration=10
         self.write_every_nth=10
         self.plot_live_while_recording=False
+        self.type_of_recording='FBG peaks'
 
-class Params_printer():
-    def __init__(self):
-        self.url="http://10.2.15.109:7125"
-    
-
-        
+     
 
         
         
@@ -76,7 +59,6 @@ class Params_printer():
 class Params():
     def __init__(self):
         self.it=Params_it()
-        self.printer=Params_printer()
         self.record=Params_recording()
         self.static=Static_measurement_params()
         self.dynamical=Dynamical_measurement_params()
@@ -189,6 +171,13 @@ class MainWindow(ThreadedMainWindow):
         self.ui.pushButton_printer_homing.pressed.connect(self.printer_homing)
         self.ui.pushButton_printer_move_bed_down.pressed.connect(self.printer_move_bed_down)
         
+        
+        self.ui.pushButton_single_measurement.clicked.connect(self.single_measurement)
+        self.ui.pushButton_save_single_spectrum.clicked.connect(self.save_single_spectrum)
+        self.ui.pushButton_start_recording.pressed.connect(self.recording)
+        self.ui.pushButton_plot_live_dynamics.toggled[bool].connect(self.plot_live_dynamics)
+        self.ui.pushButton_set_recording_parameters.pressed.connect(self.set_recording_parameters)
+        
         self.ui.pushButton_static_measurements.toggled[bool].connect(self.static_measurements)
         self.ui.pushButton_dynamical_measurements.toggled[bool].connect(self.dynamical_measurements)
         
@@ -236,7 +225,7 @@ class MainWindow(ThreadedMainWindow):
             
     def connect_printer(self):
         try:
-            self.printer = Printer(PrinterConfig(base_url=self.params.printer.url))
+            self.printer = Printer(PrinterConfig())
             # self.add_thread(self.it)
             self.logText('Connected to printer')
             
@@ -284,7 +273,7 @@ class MainWindow(ThreadedMainWindow):
             
     def set_recording_parameters(self):
         '''
-        open dialog with analyzer parameters
+        open dialog with recorder parameters
         '''
         d = get_parameters(self.params.record)
         from UIs.recording_parameters_dialogUI import Ui_Dialog
@@ -328,8 +317,148 @@ class MainWindow(ThreadedMainWindow):
             set_parameters(self.params.dynamical,params)
             
             
-            
+    def single_measurement(self):
+        try:
+            FBGs=self.it.get_averaged_single_FBG_measurement(self.params.it.averaging_time_for_single_FBG_measurement)
+            if FBGs==None:
+                self.logWarningText('error. no data returned from Interrogator')
+                return 
+            string=''
+            for ch in self.params.it.channels:
+    
+                    if FBGs[ch-1] is not None:
+                        string+=f'channel{ch}:  '+(", ".join(f"{x:.3f}" for x in FBGs[ch-1]))+ ' nm'
+    
+            self.logText(string)
+            if self.ui.checkBox_plot_single_spectrum.isChecked():
+                waves=self.it.get_waves()
+                for ch in self.params.it.channels:
+                    spectrum=self.it.get_single_spectrum(ch)
+                    plt.figure()
+                    plt.plot(waves,spectrum)
+                    plt.xlabel('Wavelength, nm')
+                    plt.ylabel('Spectral power, dBm')
+                    ymin, ymax = plt.ylim()
+                    if FBGs[ch-1] is not None:
+                        for FBG_wave in FBGs[ch-1]:
+                            if FBG_wave is not np.nan:
+                                plt.axvline(FBG_wave,  color='red')
+                    plt.axhline(self.it.get_log_threshold(ch),ls='--',color='gray',alpha=0.3)
+                    plt.title('Channel {}'.format(ch))
+        except Exception as e:
+            self.logWarningText(str(e))            
 
+    def save_single_spectrum(self):
+        line = plt.gca().get_lines()[0]
+        waves = line.get_xdata()
+        signal = line.get_ydata()
+        with open(self.saving_dir_path+'\\'+ self.ui.lineEdit_file_name_to_save_spectrum.text()+'.spectrum', "wb") as f:
+            pickle.dump([waves,signal], f)
+        self.logText('\nSpectrum saved\n')     
+
+    def plot_live_dynamics(self, pressed: bool):
+        if pressed:
+            try:
+                # старт потока данных
+                self.it.start_freq_stream(self.params.record.rep_rate)
+    
+                # старт live session (fanout + plots)
+                self._stop_live, self._live_info = start_live_plot_session(
+                    it=self.it,
+                    plot_channels=list(self.params.it.channels),      # 1-based
+                    plot_FBGs=list(self.params.it.FBGs),              # 1-based
+                    rep_rate_hz=float(self.params.record.rep_rate),
+                    window_sec=20.0,
+                    max_fps=30,
+                    ylim=None,
+                    title_prefix="Live dynamics",
+                    use_subplots=True,
+                    queue_maxsize=4000,
+                    max_frames_per_update=1200
+                )
+    
+                self.logText("Live dynamics started")
+    
+            except Exception as e:
+                self.logWarningText(str(e))
+                try:
+                    self.ui.pushButton_plot_live_dynamics.setChecked(False)
+                except Exception:
+                    pass
+    
+        else:
+            try:
+                # остановить live session
+                if hasattr(self, "_stop_live") and self._stop_live is not None:
+                    try:
+                        self._stop_live()
+                    except Exception:
+                        pass
+                    self._stop_live = None
+                    self._live_info = None
+    
+                # остановить приборный стрим
+                try:
+                    self.it.stop_freq_stream()
+                except Exception:
+                    pass
+    
+                self.logText("Live dynamics stopped")
+    
+            except Exception as e:
+                self.logWarningText(str(e))        
+
+           
+    def recording(self):
+        FilePrefix=self.ui.lineEdit_file_name_for_recording.text()
+        self.logText('start recording')
+        
+        if self.params.record.type_of_recording=='FBG peaks':
+            if not self.params.record.plot_live_while_recording:
+                
+                try:
+                    self.it.start_freq_stream(self.params.record.rep_rate)
+                    stats = record_to_file(self.it, self.saving_dir_path+FilePrefix+".fbgs", duration_sec=self.params.record.recording_duration,
+                                           channels=self.params.it.channels,FBGs=self.params.it.FBGs,write_every_n=self.params.record.write_every_nth)
+                    self.logText("Recording finished: {}".format(stats))
+                    self.it.stop_freq_stream()
+                except Exception as e:
+                    self.logWarningText(str(e))
+                    
+                self.it.stop_freq_stream()
+                
+            else:
+                try:
+                    self.it.start_freq_stream()
+        
+                    self._stop_all, stats = record_and_plot(
+                        self.it,
+                        channels=self.params.it.channels,
+                        FBGs=self.params.it.FBGs,
+                        write_every_n=self.params.record.write_every_nth,
+                        filepath=self.saving_dir_path+FilePrefix+".fbgs",
+                        duration_sec=self.params.record.recording_duration,
+                        plot_channels=self.params.it.channels,
+                        plot_FBGs=np.array(self.params.it.FBGs)-1,
+                        window_sec=10.0,
+                        max_fps=30    
+                    )
+                    QTimer.singleShot(int(self.params.record.recording_duration * 1000), self._stop_all)
+                    self.logText("Recording finished: {}".format(stats))
+                except Exception as e:
+                    self.logWarningText(str(e))
+                # ... окно живёт; когда захотите — останавливайте
+            # stop_all()
+            # self.it.stop_freq_stream()
+        elif self.params.record.type_of_recording=='Spectra':
+
+            record_spectra_to_file(self.it,
+                                   write_every_n=self.params.record.write_every_nth,
+                                   filepath=self.saving_dir_path+FilePrefix+".spectra",
+                                   duration_sec=self.params.record.recording_duration,
+                                   channels=self.params.it.channels
+                                   )
+            self.logText("Recording of spectra finished:")
                                 
     def static_measurements(self,pressed):
         if pressed:
