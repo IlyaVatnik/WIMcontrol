@@ -77,7 +77,7 @@ class Ui_MainWindow(object):
         self.groupBox_4.setGeometry(QtCore.QRect(0, 100, 811, 121))
         self.groupBox_4.setObjectName("groupBox_4")
         self.label_folder_to_save_3 = QtWidgets.QLabel(self.groupBox_4)
-        self.label_folder_to_save_3.setGeometry(QtCore.QRect(560, 50, 51, 23))
+        self.label_folder_to_save_3.setGeometry(QtCore.QRect(560, 50, 101, 23))
         self.label_folder_to_save_3.setObjectName("label_folder_to_save_3")
         self.pushButton_plot_live_dynamics = QtWidgets.QPushButton(self.groupBox_4)
         self.pushButton_plot_live_dynamics.setGeometry(QtCore.QRect(10, 17, 221, 23))
@@ -216,7 +216,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuTools.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.toolBox.setCurrentIndex(1)
+        self.toolBox.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -239,7 +239,7 @@ class Ui_MainWindow(object):
         self.label_folder_to_save_5.setText(_translate("MainWindow", ".spectrum"))
         self.pushButton_single_measurement.setText(_translate("MainWindow", "Single measurement"))
         self.groupBox_4.setTitle(_translate("MainWindow", "Continuous measurements"))
-        self.label_folder_to_save_3.setText(_translate("MainWindow", ".fbgs"))
+        self.label_folder_to_save_3.setText(_translate("MainWindow", ".fbgs/.spectra"))
         self.pushButton_plot_live_dynamics.setText(_translate("MainWindow", "Plot live dynamics"))
         self.lineEdit_file_name_for_recording.setText(_translate("MainWindow", "1"))
         self.label_folder_to_save_2.setText(_translate("MainWindow", "File name:"))

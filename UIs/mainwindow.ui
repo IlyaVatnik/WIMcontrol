@@ -24,7 +24,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="page">
      <property name="geometry">
@@ -261,12 +261,12 @@
         <rect>
          <x>560</x>
          <y>50</y>
-         <width>51</width>
+         <width>101</width>
          <height>23</height>
         </rect>
        </property>
        <property name="text">
-        <string>.fbgs</string>
+        <string>.fbgs/.spectra</string>
        </property>
       </widget>
       <widget class="QPushButton" name="pushButton_plot_live_dynamics">

@@ -23,7 +23,7 @@ import time
 
 
 from Printer_control.Printer import Printer, PrinterConfig
-from AFR_interrogator.interrogator import Interrogator, Params_it
+from AFR_interrogator.interrogator import Interrogator, Params_int
 from AFR_interrogator.FBGRecorder import (read_fbg_stream_raw_lp,
                                           start_live_plot_session,record_to_file,record_and_plot,
                                           record_spectra_to_file,
@@ -58,7 +58,7 @@ class Params_recording():
 
 class Params():
     def __init__(self):
-        self.it=Params_it()
+        self.it=Params_int()
         self.record=Params_recording()
         self.static=Static_measurement_params()
         self.dynamical=Dynamical_measurement_params()
