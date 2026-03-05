@@ -7,20 +7,22 @@ __date__ = '2026.02.25'
 
 class Static_measurement_params():
     def __init__(self):      
-        self.attach_min_x = -15
-        self.attach_max_x = 15
+        self.attach_min_x = -40
+        self.attach_max_x = 40
         '''
         Если вперёд по Y выступ 20 мм, назад 0:
         attach_min_y = 0, attach_max_y = +20
         '''
-        self.attach_min_y = -5
-        self.attach_max_y = 0
+        self.attach_min_y = -35
+        self.attach_max_y = 35
         '''
         Если колесо ниже сопла на 12 мм (выступ вниз, т.е. к столу), и вверх насадка не выступает:
         attach_min_z = -12, attach_max_z = 0
         '''
-        self.attach_min_z = -100.0
+        self.attach_min_z = -102
         self.attach_max_z = 0
+        
+        self.bed_thickness=20
         
         self.x_start=247
         self.x_stop=265
@@ -51,12 +53,7 @@ class Static_measurement(QObject):
         self.it=it
         self.printer=printer
         self.params=params
-        self.printer.set_attached_limits(min_x=self.params.attach_min_x,
-                                         max_x=self.params.attach_max_x,
-                                         min_y=self.params.attach_min_y,
-                                         max_y=self.params.attach_max_y,
-                                         min_z=self.params.attach_min_z,
-                                         max_z=self.params.attach_max_z)
+       
         self.file_path=file_path
         
         self.is_running=False
@@ -70,6 +67,14 @@ class Static_measurement(QObject):
         velocity_mm_s=100
         accel_mm_s2=500
         self.printer.set_motion_limits(velocity_mm_s=velocity_mm_s, accel_mm_s2=accel_mm_s2)
+        
+        self.printer.set_attached_limits(min_x=self.params.attach_min_x,
+                                        max_x=self.params.attach_max_x,
+                                        min_y=self.params.attach_min_y,
+                                        max_y=self.params.attach_max_y,
+                                        min_z=self.params.attach_min_z-self.params.bed_thickness,
+                                        max_z=self.params.attach_max_z)
+        
         # self.printer.set_bed_temperature(30)
 
         X_array=np.arange(self.params.x_start,self.params.x_stop,self.params.x_step)

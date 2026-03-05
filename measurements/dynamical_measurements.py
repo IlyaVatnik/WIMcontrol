@@ -13,22 +13,27 @@ from queue import Queue
 __version__='1.3'
 __date__ = '2026.02.27'
 
+
+MAX_SIZE_QUEUE=5000
+
 class Dynamical_measurement_params():
     def __init__(self):      
-        self.attach_min_x = -25 
-        self.attach_max_x = 25
+        self.attach_min_x = -50 
+        self.attach_max_x = 50
         '''
         Если вперёд по Y выступ 20 мм, назад 0:
         attach_min_y = 0, attach_max_y = +20
         '''
-        self.attach_min_y = -10.0
-        self.attach_max_y = 5
+        self.attach_min_y = -30
+        self.attach_max_y = 30
         '''
         Если колесо ниже сопла на 12 мм (выступ вниз, т.е. к столу), и вверх насадка не выступает:
         attach_min_z = -12, attach_max_z = 0
         '''
-        self.attach_min_z = -50.0
+        self.attach_min_z = -45
         self.attach_max_z = 0.0
+        
+        self.bed_thickness=20
         
         self.x_start=250
         self.x_stop=260
@@ -67,12 +72,7 @@ class Dynamical_measurement(QObject):
         self.it=it
         self.printer=printer
         self.params=params ## Dynamical_measurement_params
-        self.printer.set_attached_limits(min_x=self.params.attach_min_x,
-                                         max_x=self.params.attach_max_x,
-                                         min_y=self.params.attach_min_y,
-                                         max_y=self.params.attach_max_y,
-                                         min_z=self.params.attach_min_z,
-                                         max_z=self.params.attach_max_z)
+
         self.folder_path=folder_path
         self.channels=channels
         self.FBGs=FBGs
@@ -88,7 +88,7 @@ class Dynamical_measurement(QObject):
     def save_data(self,path,time_to_save,other_params):
         if self.params.type_of_data_to_record=='FBG peaks':
             self.it.start_freq_stream()
-            q_rec = Queue(maxsize=50000)
+            q_rec = Queue(maxsize=MAX_SIZE_QUEUE)
             self.fan.add_consumer_queue(q_rec)
             time.sleep(0.01)
             
@@ -117,7 +117,14 @@ class Dynamical_measurement(QObject):
                                    )
         
     def run(self,log=True):
-
+        
+        self.printer.set_attached_limits(min_x=self.params.attach_min_x,
+                                         max_x=self.params.attach_max_x,
+                                         min_y=self.params.attach_min_y,
+                                         max_y=self.params.attach_max_y,
+                                         min_z=self.params.attach_min_z-self.params.bed_thickness,
+                                         max_z=self.params.attach_max_z)
+        
         ### main loop
         if self.params.y_velocity>self.printer.cfg.max_velocity_mm_s:
             self.S_print_error.emit('Velocity along y exceeds the limits set for the printer in printer configuration script')
@@ -142,14 +149,14 @@ class Dynamical_measurement(QObject):
             # Сообщаем GUI, что можно подключаться к q_plot (если включен live plot)
 
             if self.params.plot_live_plot:
-                q_plot = Queue(maxsize=10000)
+                q_plot = Queue(maxsize=MAX_SIZE_QUEUE)
                 self.fan.add_consumer_queue(q_plot)
                 self.S_plot_queue_ready.emit(q_plot)
                 # if self.params.type_of_data_to_record=='Spectra':
                 #     self.it.start_freq_stream()
 
     
-            time_to_save=1.4*calc_time_of_moving(abs(self.params.y_stop-self.params.y_start),self.params.y_velocity,self.printer.cfg.max_accel_mm_s2)
+            time_to_save=1.5*calc_time_of_moving(abs(self.params.y_stop-self.params.y_start),self.params.y_velocity,self.printer.cfg.max_accel_mm_s2)
             self.S_print.emit('Time for one movement is {:.2f} s'.format(time_to_save))
            
             for x in X_array:

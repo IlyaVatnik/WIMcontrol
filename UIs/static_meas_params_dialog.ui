@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>421</width>
-    <height>630</height>
+    <height>672</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -233,7 +233,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>380</y>
+     <y>450</y>
      <width>351</width>
      <height>121</height>
     </rect>
@@ -420,7 +420,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>200</y>
+     <y>270</y>
      <width>251</width>
      <height>141</height>
     </rect>
@@ -504,7 +504,7 @@
    <property name="geometry">
     <rect>
      <x>110</x>
-     <y>542</y>
+     <y>612</y>
      <width>161</width>
      <height>20</height>
     </rect>
@@ -520,7 +520,7 @@
    <property name="geometry">
     <rect>
      <x>280</x>
-     <y>540</y>
+     <y>610</y>
      <width>61</width>
      <height>23</height>
     </rect>
@@ -533,7 +533,7 @@
    <property name="geometry">
     <rect>
      <x>40</x>
-     <y>540</y>
+     <y>610</y>
      <width>71</width>
      <height>23</height>
     </rect>
@@ -541,6 +541,48 @@
    <property name="text">
     <string>File name:</string>
    </property>
+  </widget>
+  <widget class="QGroupBox" name="groupBox">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>180</y>
+     <width>251</width>
+     <height>61</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>Bed dimensions, mm</string>
+   </property>
+   <widget class="QLabel" name="label_61">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>20</y>
+      <width>71</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Thickness</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEdit_bed_thickness">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>20</y>
+      <width>81</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>18</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+   </widget>
   </widget>
  </widget>
  <resources/>

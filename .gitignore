@@ -7,3 +7,5 @@
 *.pyc
 *.pyc
 *.pyc
+/measurements/__pycache__
+/UIs/__pycache__

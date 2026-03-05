@@ -373,7 +373,7 @@ class MainWindow(ThreadedMainWindow):
                     ylim=None,
                     title_prefix="Live dynamics",
                     use_subplots=True,
-                    queue_maxsize=4000,
+                    queue_maxsize=1000,
                     max_frames_per_update=1200
                 )
     

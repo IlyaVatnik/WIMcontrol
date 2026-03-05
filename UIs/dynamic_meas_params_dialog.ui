@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>610</width>
-    <height>638</height>
+    <height>660</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -233,7 +233,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>190</y>
+     <y>240</y>
      <width>251</width>
      <height>141</height>
     </rect>
@@ -317,7 +317,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>370</y>
+     <y>390</y>
      <width>451</width>
      <height>161</height>
     </rect>
@@ -386,7 +386,7 @@
    <widget class="QLabel" name="label_44">
     <property name="geometry">
      <rect>
-      <x>280</x>
+      <x>310</x>
       <y>32</y>
       <width>71</width>
       <height>16</height>
@@ -399,7 +399,7 @@
    <widget class="QLineEdit" name="lineEdit_x_step">
     <property name="geometry">
      <rect>
-      <x>330</x>
+      <x>360</x>
       <y>32</y>
       <width>41</width>
       <height>20</height>
@@ -415,9 +415,9 @@
    <widget class="QLabel" name="label_45">
     <property name="geometry">
      <rect>
-      <x>240</x>
+      <x>260</x>
       <y>80</y>
-      <width>71</width>
+      <width>91</width>
       <height>16</height>
      </rect>
     </property>
@@ -486,7 +486,7 @@
    <widget class="QLineEdit" name="lineEdit_y_velocity">
     <property name="geometry">
      <rect>
-      <x>330</x>
+      <x>360</x>
       <y>80</y>
       <width>41</width>
       <height>20</height>
@@ -559,7 +559,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>550</y>
+     <y>570</y>
      <width>571</width>
      <height>71</height>
     </rect>
@@ -641,6 +641,48 @@
       <string>Spectra</string>
      </property>
     </item>
+   </widget>
+  </widget>
+  <widget class="QGroupBox" name="groupBox">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>170</y>
+     <width>251</width>
+     <height>61</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>Bed dimensions, mm</string>
+   </property>
+   <widget class="QLabel" name="label_61">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>20</y>
+      <width>71</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Thickness</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEdit_bed_thickness">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>20</y>
+      <width>81</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>18</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
    </widget>
   </widget>
  </widget>
