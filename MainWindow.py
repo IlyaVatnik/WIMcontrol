@@ -11,6 +11,8 @@ __date__ = '2026.03.04'
 import os
     
 import numpy as np
+import matplotlib
+matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 import json
 import csv
@@ -19,8 +21,7 @@ import pickle
 
 from PyQt5.QtCore import  QThread,QTimer,pyqtSignal
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QDialog,QLineEdit,QComboBox,QCheckBox,QMessageBox,QInputDialog
-import time
-
+import traceback
 
 from Printer_control.Printer import Printer, PrinterConfig
 from AFR_interrogator.interrogator import Interrogator, Params_int
@@ -345,6 +346,7 @@ class MainWindow(ThreadedMainWindow):
                                 plt.axvline(FBG_wave,  color='red')
                     plt.axhline(self.it.get_log_threshold(ch),ls='--',color='gray',alpha=0.3)
                     plt.title('Channel {}'.format(ch))
+            plt.show(block=False)
         except Exception as e:
             self.logWarningText(str(e))            
 
@@ -598,68 +600,72 @@ class MainWindow(ThreadedMainWindow):
  
         
     def plot_from_file(self):
-        file_name=os.path.basename(self.file_to_load_path)
-        if file_name.split('.')[1]=='fbgs':
-            colors = plt.cm.tab10.colors
-            times, channels, channel_list, FBGs_list,other_params = read_fbg_stream_raw_lp(self.file_to_load_path)
-            self.logText('In this file there are channels {} and FBGs {} in these channels'.format(channel_list,FBGs_list))
-            self.figs_fbgs=[]
-            for ch in self.params.it.channels:
-                N_FBG=len(self.params.it.FBGs[ch-1])
-                if N_FBG>1:
+        try:
+            file_name=os.path.basename(self.file_to_load_path)
+            if file_name.split('.')[1]=='fbgs':
+                colors = plt.cm.tab10.colors
+                times, channels, channel_list, FBGs_list,other_params = read_fbg_stream_raw_lp(self.file_to_load_path)
+                self.logText('In this file there are channels {} and FBGs {} in these channels'.format(channel_list,FBGs_list))
+                self.figs_fbgs=[]
+                for ch in self.params.it.channels:
+                    N_FBG=len(self.params.it.FBGs[ch-1])
+                    if N_FBG>1:
+                        
+                        fig,axes=plt.subplots(nrows=N_FBG,sharex=True)
+                        self.figs_fbgs.append(fig)
+                        fig.supxlabel("Time, s")
+                        fig.supylabel("FBG wavelength, nm")
+                        for ii,FBG in enumerate(self.params.it.FBGs[ch-1]):
+                            axes[ii].plot(times - times[0], channels[ch][ii+1],color=colors[ii % len(colors)])
+                            axes[ii].set_title(f"FBG {FBG}", loc="left", fontsize=10, pad=2)
+                        plt.suptitle('ch {} of {}, v_y={} mm/s'.format(ch, file_name.split('.')[0], other_params['y_velocity']))
+                                            
+    
+                    else: 
+                        fig=plt.figure()
+                        self.figs_fbgs.append(fig)
+                        plt.xlabel("Time, s")
+                        plt.ylabel("FBG wavelength, nm")
+                        plt.plot(times - times[0], channels[ch][self.params.it.FBGs[ch-1][0]])
+                        plt.title('FBG {}, ch {} of "{}"'.format(self.params.it.FBGs[ch-1][0],ch, file_name.split('.')[0]))
+                        
+                   
+                    plt.tight_layout()
                     
-                    fig,axes=plt.subplots(nrows=N_FBG,sharex=True)
-                    self.figs_fbgs.append(fig)
-                    fig.supxlabel("Time, s")
-                    fig.supylabel("FBG wavelength, nm")
-                    for ii,FBG in enumerate(self.params.it.FBGs[ch-1]):
-                        axes[ii].plot(times - times[0], channels[ch][ii+1],color=colors[ii % len(colors)])
-                        axes[ii].set_title(f"FBG {FBG}", loc="left", fontsize=10, pad=2)
-                    plt.suptitle('ch {} of {}, v_y={} mm/s'.format(ch, file_name.split('.')[0], other_params['y_velocity']))
-                                        
-
-                else: 
-                    fig=plt.figure()
-                    self.figs_fbgs.append(fig)
-                    plt.xlabel("Time, s")
-                    plt.ylabel("FBG wavelength, nm")
-                    plt.plot(times - times[0], channels[ch][self.params.it.FBGs[ch-1][0]])
-                    plt.title('FBG {}, ch {} of "{}"'.format(self.params.it.FBGs[ch-1][0],ch, file_name.split('.')[0]))
-                    
-               
+                plt.show()
+                self.type_of_plotted_data='fbgs' 
+                self.logText('Other parameters of the record are {} '.format(other_params))       
+                
+            elif file_name.split('.')[1]=='spectrum':
+                with open(self.file_to_load_path,'rb') as f:
+                    waves,spectrum=pickle.load(f)
+                plt.figure()
+                plt.plot(waves,spectrum)
+                plt.xlabel('Wavelength, nm')
+                plt.ylabel('Spectral power, dBm')
                 plt.tight_layout()
+                self.type_of_plotted_data='spectrum'
                 plt.show()
                 
-            self.type_of_plotted_data='fbgs' 
-            self.logText('Other parameters of the record are {} '.format(other_params))       
+            elif file_name.split('.')[1]=='static':
+                
+                self.static_processor=Static_processor(self.file_to_load_path,self.params.it.channels,self.params.it.FBGs)
+                self.static_processor.S_print_error[str].connect(self.logWarningText)
+                self.static_processor.S_print[str].connect(self.logText)
+                self.static_processor.indicate_maxima_of_maps()
+                self.static_processor.plot_all_3d_plots()
+                self.type_of_plotted_data='static3d'
+                
+            elif file_name.split('.')[1]=='spectra':
+                self.spectra_processor=Spectra_meas_processor(self.file_to_load_path,self.params.it.channels)
+                self.spectra_processor.S_print_error[str].connect(self.logWarningText)
+                self.spectra_processor.S_print[str].connect(self.logText)
+                self.spectra_processor.plot_3d()
+                self.type_of_plotted_data='spectra'
+        except Exception:
+            self.logWarningText(traceback.format_exc()) 
             
-        elif file_name.split('.')[1]=='spectrum':
-            with open(self.file_to_load_path,'rb') as f:
-                waves,spectrum=pickle.load(f)
-            plt.figure()
-            plt.plot(waves,spectrum)
-            plt.xlabel('Wavelength, nm')
-            plt.ylabel('Spectral power, dBm')
-            plt.tight_layout()
-            self.type_of_plotted_data='spectrum'
-            
-        elif file_name.split('.')[1]=='static':
-            
-            self.static_processor=Static_processor(self.file_to_load_path,self.params.it.channels,self.params.it.FBGs)
-            # self.add_thread(self.static_processor)
-            self.static_processor.S_print_error[str].connect(self.logWarningText)
-            self.static_processor.S_print[str].connect(self.logText)
-            self.static_processor.indicate_maxima_of_maps()
-            self.static_processor.plot_all_3d_plots()
-            self.type_of_plotted_data='static3d'
-            
-        elif file_name.split('.')[1]=='spectra':
-            self.spectra_processor=Spectra_meas_processor(self.file_to_load_path,self.params.it.channels)
-            self.spectra_processor.S_print_error[str].connect(self.logWarningText)
-            self.spectra_processor.S_print[str].connect(self.logText)
-            self.spectra_processor.plot_3d()
-            self.type_of_plotted_data='spectra'
-            
+                
             
 
       

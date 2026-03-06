@@ -41,6 +41,7 @@ class Spectra_meas_processor(QObject):
             plt.ylabel('Time, s')
             plt.xlabel('Wavelength, nm')
             plt.gca().set_zlabel('Spectral power, dBm')
+        plt.show(block=False)
 
     
 

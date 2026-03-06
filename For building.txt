@@ -1,0 +1,9 @@
+cd /d F:\!Projects\!WIM\WIMcontrol
+
+pyinstaller --clean --onedir ^
+  -p . ^
+  -p "F:\!Projects\!_Equipment\AFR Interrogator" ^
+  -p "F:\!Projects\!_Equipment\3D printers" ^
+  --exclude-module PySide6 --exclude-module PySide2 ^
+  --add-data "Params.txt;." ^
+  WIM_control.py

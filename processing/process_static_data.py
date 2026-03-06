@@ -149,6 +149,7 @@ class Static_meas_processor(QObject):
         D['ch']=ch
         D['FBG']=FBG_number
         self.single_slice_params=D
+        plt.show(block=False) 
   
         
     def plot_3d(self,coords,Z, plot_raw_points=False):
@@ -167,6 +168,10 @@ class Static_meas_processor(QObject):
         ax.plot_surface(X, Y, re_Z, cmap="inferno", linewidth=0, antialiased=True, alpha=0.9)
         if plot_raw_points:
             ax.scatter(x, y, Z, c="cyan", edgecolor="k", s=60)  # исходные измерения
+        
+        plt.xlabel('X, mm')
+        plt.ylabel('Y, mm')
+        ax.set_zlabel("FBG wavelength shift, nm")
         return fig,ax
     
     def plot_all_3d_plots(self):
@@ -177,13 +182,13 @@ class Static_meas_processor(QObject):
                 FBG_wavelengths_pressed=self._extract_FBG_wavelengths(self.FBGs_map_pressed,ch,FBG)
                 try:
                     fig,ax=self.plot_3d(self.coords,FBG_wavelengths_pressed-FBG_wavelengths_pristine)
-                    plt.xlabel('X, mm')
-                    plt.ylabel('Y, mm')
-                    ax.set_zlabel("FBG wavelength shift, nm")
+
                     ax.set_title("ch={} FBG={}".format(ch,FBG))
                     plt.tight_layout()
+                    
                 except:
                     pass
+        plt.show(block=False) 
 
     
 
