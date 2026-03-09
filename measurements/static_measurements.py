@@ -2,8 +2,8 @@ from PyQt5.QtCore import pyqtSignal, QObject
 import time
 import numpy as np
 
-__version__='1.2'
-__date__ = '2026.02.25'
+__version__='1.3'
+__date__ = '2026.03.09'
 
 class Static_measurement_params():
     def __init__(self):      
@@ -18,11 +18,14 @@ class Static_measurement_params():
         '''
         Если колесо ниже сопла на 12 мм (выступ вниз, т.е. к столу), и вверх насадка не выступает:
         attach_min_z = -12, attach_max_z = 0
+        если у штампа есть свободный ход по вертикали, то 
+        self.attach_min_z_unsafe - это минимальное расстояние от сопла до нижней части штампа
+        self.attach_min_z_safe - это максимальное расстояние от сопла до нижней части штампа
         '''
-        self.attach_min_z = -102
-        self.attach_max_z = 0
+        self.attach_min_z_unsafe=-102
+        self.attach_min_z_safe=-108
         
-        self.bed_thickness=20
+        self.bed_thickness=18
         
         self.x_start=247
         self.x_stop=265
@@ -32,9 +35,7 @@ class Static_measurement_params():
         self.y_stop=180
         self.y_step=1
         
-        self.z_safe=130
-        self.z_contact=122
-        
+       
         self.file_name_to_save_static_meas='1'
 
 class Static_measurement(QObject):
@@ -58,6 +59,9 @@ class Static_measurement(QObject):
         
         self.is_running=False
         
+        self.z_safe=abs(self.params.attach_min_z_safe)+self.params.bed_thickness+10
+        self.z_contact=abs(self.params.attach_min_z_safe)+self.params.bed_thickness-4
+        
     def run(self,log_time=True,log_data=True):
 
         ### main loop
@@ -72,7 +76,7 @@ class Static_measurement(QObject):
                                         max_x=self.params.attach_max_x,
                                         min_y=self.params.attach_min_y,
                                         max_y=self.params.attach_max_y,
-                                        min_z=self.params.attach_min_z-self.params.bed_thickness,
+                                        min_z=self.params.attach_min_z_unsafe-self.params.bed_thickness,
                                         max_z=self.params.attach_max_z)
         
         # self.printer.set_bed_temperature(30)
@@ -92,7 +96,7 @@ class Static_measurement(QObject):
                         self.S_print.emit('Scanning at X={} Y={}, step {} of {}, time elapsed for step {:.1f} s, time remaining={:.0f} min {:.1f} s'.format(x,y,ii,N_steps,(time_tic_2-time_tic_1),time_remaining//60,np.mod(time_remaining,60)))
                         time_tic_1=time_tic_2
                    
-                    self.printer.safe_y_pass(x=x, y_start=y, y_end=y, z_safe=self.params.z_safe, z_contact=self.params.z_safe)
+                    self.printer.safe_y_pass(x=x, y_start=y, y_end=y, z_safe=self.z_safe, z_contact=self.z_safe)
             
                     time.sleep(0.1)
             
@@ -100,7 +104,7 @@ class Static_measurement(QObject):
 
 
                     
-                    self.printer.move_absolute(x=x, y=y, z=self.params.z_contact, speed_mm_s=velocity_mm_s)
+                    self.printer.move_absolute(x=x, y=y, z=self.z_contact, speed_mm_s=velocity_mm_s)
                     time.sleep(0.1)
             
                     FBGs_pressured=self.it.get_averaged_single_FBG_measurement()
@@ -120,7 +124,7 @@ class Static_measurement(QObject):
                     temp_bed=self.printer.get_bed_temperature()[0]
                     temp_chamber=self.printer.get_chamber_temperature()[0]
                     
-                    self.printer.move_absolute(x=x, y=y, z=self.params.z_safe, speed_mm_s=velocity_mm_s)
+                    self.printer.move_absolute(x=x, y=y, z=self.z_safe, speed_mm_s=velocity_mm_s)
 
                     with open(self.file_path+'.static','a') as f:
                         f.write(str([int(x),int(y),temp_bed, temp_chamber,FBGs_pristine,FBGs_pressured])+'\n')

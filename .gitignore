@@ -11,3 +11,4 @@
 /UIs/__pycache__
 /build
 /dist
+*.pyc

@@ -10,8 +10,8 @@ import numpy as np
 from AFR_interrogator.FBGRecorder import record_to_file_from_queue, FrameFanout,record_spectra_to_file
 from queue import Queue
 
-__version__='1.3'
-__date__ = '2026.02.27'
+__version__='1.4'
+__date__ = '2026.03.09'
 
 
 MAX_SIZE_QUEUE=5000
@@ -29,10 +29,14 @@ class Dynamical_measurement_params():
         '''
         Если колесо ниже сопла на 12 мм (выступ вниз, т.е. к столу), и вверх насадка не выступает:
         attach_min_z = -12, attach_max_z = 0
-        '''
-        self.attach_min_z = -45
-        self.attach_max_z = 0.0
         
+        если у колеса есть свободный ход по вертикали, то 
+        self.attach_min_z_unsafe - это минимальное расстояние от сопла до нижней части колеса
+        self.attach_min_z_safe - это максимальное расстояние от сопла до нижней части колеса
+        '''
+        self.attach_max_z = 0.0
+        self.attach_min_z_unsafe=-45
+        self.attach_min_z_safe=-55
         self.bed_thickness=20
         
         self.x_start=250
@@ -43,8 +47,7 @@ class Dynamical_measurement_params():
         self.y_stop=200
         self.y_velocity=50
         
-        self.z_safe=90
-        self.z_contact=70
+
         
         self.write_every_nth=3
         
@@ -84,6 +87,9 @@ class Dynamical_measurement(QObject):
         self.safe_velocity_mm_s=100
         
 
+        self.z_safe=abs(self.params.attach_min_z_safe)+self.params.bed_thickness+10
+        self.z_contact=abs(self.params.attach_min_z_safe)+self.params.bed_thickness-4
+        
         
     def save_data(self,path,time_to_save,other_params):
         if self.params.type_of_data_to_record=='FBG peaks':
@@ -117,12 +123,13 @@ class Dynamical_measurement(QObject):
                                    )
         
     def run(self,log=True):
+
         
         self.printer.set_attached_limits(min_x=self.params.attach_min_x,
                                          max_x=self.params.attach_max_x,
                                          min_y=self.params.attach_min_y,
                                          max_y=self.params.attach_max_y,
-                                         min_z=self.params.attach_min_z-self.params.bed_thickness,
+                                         min_z=self.params.attach_min_z_unsafe-self.params.bed_thickness,
                                          max_z=self.params.attach_max_z)
         
         ### main loop
@@ -177,10 +184,10 @@ class Dynamical_measurement(QObject):
                         y_c=d['y']
                         if x_c!=x or y_c!=self.params.y_start:
                             self.printer.safe_y_pass(x=x,y_start=self.params.y_start, y_end=self.params.y_start,
-                                                     z_safe=self.params.z_safe,z_contact=self.params.z_safe,
+                                                     z_safe=self.z_safe,z_contact=self.z_safe,
                                                      approach_speed_mm_s=self.safe_velocity_mm_s)
                     
-                        self.printer.move_z(z=self.params.z_contact, speed_mm_s=self.safe_velocity_mm_s)
+                        self.printer.move_z(z=self.z_contact, speed_mm_s=self.safe_velocity_mm_s)
                     
             
                         
@@ -192,14 +199,14 @@ class Dynamical_measurement(QObject):
                         d['chamber_temp']=self.printer.get_chamber_temperature()[0]
                         d['y_start']=self.params.y_start
                         d['y_stop']=self.params.y_stop
-                        d['z_contact']=self.params.z_contact
+                        d['z_contact']=self.z_contact
                         d['y_velocity']=self.params.y_velocity
                         
                         
                         # self.it.start_freq_stream(self.params.rep_rate if hasattr(self.params, "rep_rate") else None)
 
                         
-                        self.printer.move_absolute(x=x, y=self.params.y_stop, z=self.params.z_contact,
+                        self.printer.move_absolute(x=x, y=self.params.y_stop, z=self.z_contact,
                                                    speed_mm_s=self.params.y_velocity, wait=False)
      
                         self.save_data(path, time_to_save, other_params=d)
@@ -217,13 +224,13 @@ class Dynamical_measurement(QObject):
                             d['chamber_temp']=self.printer.get_chamber_temperature()[0]
                             d['y_start']=self.params.y_stop
                             d['y_stop']=self.params.y_start
-                            d['z_contact']=self.params.z_contact
+                            d['z_contact']=self.z_contact
                             d['y_velocity']=self.params.y_velocity
                             
                             
                             # self.it.start_freq_stream(self.params.rep_rate if hasattr(self.params, "rep_rate") else None)
   
-                            self.printer.move_absolute(x=x, y=self.params.y_start, z=self.params.z_contact,
+                            self.printer.move_absolute(x=x, y=self.params.y_start, z=self.z_contact,
                                                        speed_mm_s=self.params.y_velocity, wait=False)
          
                    
@@ -250,7 +257,7 @@ class Dynamical_measurement(QObject):
             self.S_print.emit(message)
         self.it.stop_freq_stream()
         self.fan.stop(timeout=1.0)
-        self.printer.move_z(z=self.params.z_safe, speed_mm_s=self.safe_velocity_mm_s)
+        self.printer.move_z(z=self.z_safe, speed_mm_s=self.safe_velocity_mm_s)
         
 def calc_time_of_moving(length, speed,acc):
     t_acc=speed/acc
