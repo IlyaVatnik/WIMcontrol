@@ -268,9 +268,12 @@ class MainWindow(ThreadedMainWindow):
                 self.it.averaging_time_for_single_FBG_measurement=self.params.it.averaging_time_for_single_FBG_measurement
             
     def set_gains(self):
-        for ch in range(self.it.channels):
-            self.it.set_gain(ch+1, auto=self.params.it.gains_auto[ch], manual_level=self.params.it.gains_manual[ch])
-            self.it.set_threshold(ch+1, self.params.it.thresholds[ch])
+        try:
+            for ch in range(self.it.channels):
+                self.it.set_gain(ch+1, auto=self.params.it.gains_auto[ch], manual_level=self.params.it.gains_manual[ch])
+                self.it.set_threshold(ch+1, self.params.it.thresholds[ch])
+        except Exception as e:
+            self.logWarningText(str(e))
             
     def set_recording_parameters(self):
         '''
@@ -351,12 +354,15 @@ class MainWindow(ThreadedMainWindow):
             self.logWarningText(str(e))            
 
     def save_single_spectrum(self):
-        line = plt.gca().get_lines()[0]
-        waves = line.get_xdata()
-        signal = line.get_ydata()
-        with open(self.saving_dir_path+'\\'+ self.ui.lineEdit_file_name_to_save_spectrum.text()+'.spectrum', "wb") as f:
-            pickle.dump([waves,signal], f)
-        self.logText('\nSpectrum saved\n')     
+        try:
+            line = plt.gca().get_lines()[0]
+            waves = line.get_xdata()
+            signal = line.get_ydata()
+            with open(self.saving_dir_path+'\\'+ self.ui.lineEdit_file_name_to_save_spectrum.text()+'.spectrum', "wb") as f:
+                pickle.dump([waves,signal], f)
+            self.logText('\nSpectrum saved\n')     
+        except Exception as e:
+            self.logWarningText(str(e))
 
     def plot_live_dynamics(self, pressed: bool):
         if pressed:
@@ -464,7 +470,7 @@ class MainWindow(ThreadedMainWindow):
                                 
     def static_measurements(self,pressed):
         if pressed:
-            msg=QMessageBox(2, 'Warning', 'Do you want to start static scanning? Please ensure there are proper scanning settings')
+            msg=QMessageBox(2, 'Warning', 'Do you want to start static scanning? \n Please ensure there are proper scanning settings \n Ensure that the bed thickness is properly set!')
             msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
             returnValue = msg.exec()
             if returnValue == QMessageBox.Ok:  
@@ -542,7 +548,7 @@ class MainWindow(ThreadedMainWindow):
             
     def dynamical_measurements(self,pressed):
         if pressed:
-            msg=QMessageBox(2, 'Warning', 'Do you want to start dynamical scanning? Please ensure there are proper scanning settings')
+            msg=QMessageBox(2, 'Warning', 'Do you want to start dynamical scanning? \n Please ensure there are proper scanning settings  \n Ensure that the bed thickness is properly set!')
             msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
             returnValue = msg.exec()
             if returnValue == QMessageBox.Ok:  

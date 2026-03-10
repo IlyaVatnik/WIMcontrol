@@ -22,8 +22,8 @@ class Static_measurement_params():
         self.attach_min_z_unsafe - это минимальное расстояние от сопла до нижней части штампа
         self.attach_min_z_safe - это максимальное расстояние от сопла до нижней части штампа
         '''
-        self.attach_min_z_unsafe=-102
-        self.attach_min_z_safe=-108
+        self.attach_min_z_unsafe=-100
+        self.attach_min_z_safe=-104
         
         self.bed_thickness=18
         
@@ -60,7 +60,7 @@ class Static_measurement(QObject):
         self.is_running=False
         
         self.z_safe=abs(self.params.attach_min_z_safe)+self.params.bed_thickness+10
-        self.z_contact=abs(self.params.attach_min_z_safe)+self.params.bed_thickness-4
+        self.z_contact=abs(self.params.attach_min_z_safe)+self.params.bed_thickness-2
         
     def run(self,log_time=True,log_data=True):
 

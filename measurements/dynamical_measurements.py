@@ -88,7 +88,7 @@ class Dynamical_measurement(QObject):
         
 
         self.z_safe=abs(self.params.attach_min_z_safe)+self.params.bed_thickness+10
-        self.z_contact=abs(self.params.attach_min_z_safe)+self.params.bed_thickness-4
+        self.z_contact=abs(self.params.attach_min_z_safe)+self.params.bed_thickness-3
         
         
     def save_data(self,path,time_to_save,other_params):

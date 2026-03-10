@@ -12,3 +12,4 @@
 /build
 /dist
 *.pyc
+/measurements/__pycache__
