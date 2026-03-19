@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(339, 574)
+        Dialog.resize(339, 668)
         self.buttonBox = QtWidgets.QDialogButtonBox(Dialog)
         self.buttonBox.setGeometry(QtCore.QRect(230, 50, 81, 61))
         self.buttonBox.setOrientation(QtCore.Qt.Vertical)
@@ -88,7 +88,7 @@ class Ui_Dialog(object):
         self.lineEdit_thresholds.setObjectName("lineEdit_thresholds")
         self.verticalLayout_4.addWidget(self.lineEdit_thresholds)
         self.groupBox_4 = QtWidgets.QGroupBox(Dialog)
-        self.groupBox_4.setGeometry(QtCore.QRect(10, 490, 201, 81))
+        self.groupBox_4.setGeometry(QtCore.QRect(10, 490, 201, 141))
         self.groupBox_4.setObjectName("groupBox_4")
         self.verticalLayout_5 = QtWidgets.QVBoxLayout(self.groupBox_4)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
@@ -99,6 +99,13 @@ class Ui_Dialog(object):
         self.lineEdit_averaging_time_for_single_FBG_measurement.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.lineEdit_averaging_time_for_single_FBG_measurement.setObjectName("lineEdit_averaging_time_for_single_FBG_measurement")
         self.verticalLayout_5.addWidget(self.lineEdit_averaging_time_for_single_FBG_measurement)
+        self.label_33 = QtWidgets.QLabel(self.groupBox_4)
+        self.label_33.setObjectName("label_33")
+        self.verticalLayout_5.addWidget(self.label_33)
+        self.lineEdit_max_wl_jump_nm = QtWidgets.QLineEdit(self.groupBox_4)
+        self.lineEdit_max_wl_jump_nm.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.lineEdit_max_wl_jump_nm.setObjectName("lineEdit_max_wl_jump_nm")
+        self.verticalLayout_5.addWidget(self.lineEdit_max_wl_jump_nm)
 
         self.retranslateUi(Dialog)
         self.buttonBox.accepted.connect(Dialog.accept) # type: ignore
@@ -128,6 +135,8 @@ class Ui_Dialog(object):
         self.groupBox_4.setTitle(_translate("Dialog", "Measurement options"))
         self.label_32.setText(_translate("Dialog", "Single meas. averaging time, s"))
         self.lineEdit_averaging_time_for_single_FBG_measurement.setText(_translate("Dialog", "0.5"))
+        self.label_33.setText(_translate("Dialog", "Max allowed shift of FBG, nm"))
+        self.lineEdit_max_wl_jump_nm.setText(_translate("Dialog", "0.5"))
 
 
 if __name__ == "__main__":

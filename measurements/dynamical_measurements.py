@@ -124,29 +124,29 @@ class Dynamical_measurement(QObject):
         
     def run(self,log=True):
 
-        
-        self.printer.set_attached_limits(min_x=self.params.attach_min_x,
-                                         max_x=self.params.attach_max_x,
-                                         min_y=self.params.attach_min_y,
-                                         max_y=self.params.attach_max_y,
-                                         min_z=self.params.attach_min_z_unsafe-self.params.bed_thickness,
-                                         max_z=self.params.attach_max_z)
-        
-        ### main loop
-        if self.params.y_velocity>self.printer.cfg.max_velocity_mm_s:
-            self.S_print_error.emit('Velocity along y exceeds the limits set for the printer in printer configuration script')
-            self.S_print_error.emit('Stop dynamical measurements')
-            return
-        
-
-       
-
-        # self.printer.set_bed_temperature(30)
-
-        X_array=np.arange(self.params.x_start,self.params.x_stop,self.params.x_step)
-        ii=0
-        N_steps=len(X_array)
         try:
+            self.printer.set_attached_limits(min_x=self.params.attach_min_x,
+                                             max_x=self.params.attach_max_x,
+                                             min_y=self.params.attach_min_y,
+                                             max_y=self.params.attach_max_y,
+                                             min_z=self.params.attach_min_z_unsafe-self.params.bed_thickness,
+                                             max_z=self.params.attach_max_z)
+            
+            ### main loop
+            if self.params.y_velocity>self.printer.cfg.max_velocity_mm_s:
+                self.S_print_error.emit('Velocity along y exceeds the limits set for the printer in printer configuration script')
+                self.S_print_error.emit('Stop dynamical measurements')
+                return
+            
+    
+           
+    
+            # self.printer.set_bed_temperature(30)
+    
+            X_array=np.arange(self.params.x_start,self.params.x_stop,self.params.x_step)
+            ii=0
+            N_steps=len(X_array)
+
             time_tic_1=time.time()
             # Очереди для self.fanout
 
@@ -251,13 +251,13 @@ class Dynamical_measurement(QObject):
 
             
     def interrupted(self,message,error=False):
+        self.it.stop_freq_stream()
+        self.fan.stop(timeout=1.0)
+        self.printer.move_z(z=self.z_safe, speed_mm_s=self.safe_velocity_mm_s,wait=False)
         if error:
             self.S_print_error.emit(message)
         else:
             self.S_print.emit(message)
-        self.it.stop_freq_stream()
-        self.fan.stop(timeout=1.0)
-        self.printer.move_z(z=self.z_safe, speed_mm_s=self.safe_velocity_mm_s)
         
 def calc_time_of_moving(length, speed,acc):
     t_acc=speed/acc

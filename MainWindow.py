@@ -11,6 +11,7 @@ __date__ = '2026.03.04'
 import os
     
 import numpy as np
+import time
 import matplotlib
 matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
@@ -24,7 +25,7 @@ from PyQt5.QtWidgets import QMainWindow, QFileDialog, QDialog,QLineEdit,QComboBo
 import traceback
 
 from Printer_control.Printer import Printer, PrinterConfig
-from AFR_interrogator.interrogator import Interrogator, Params_int
+from AFR_interrogator.interrogator import Interrogator,Params_interrogator
 from AFR_interrogator.FBGRecorder import (read_fbg_stream_raw_lp,
                                           start_live_plot_session,record_to_file,record_and_plot,
                                           record_spectra_to_file,
@@ -59,7 +60,7 @@ class Params_recording():
 
 class Params():
     def __init__(self):
-        self.it=Params_int()
+        self.it=Params_interrogator()
         self.record=Params_recording()
         self.static=Static_measurement_params()
         self.dynamical=Dynamical_measurement_params()
@@ -137,12 +138,13 @@ class MainWindow(ThreadedMainWindow):
         # self.it
         
         self.params=Params()
-        self.load_parameters_from_file()
+
         
         self.it=None
         self.printer=None
         
         self.type_of_plotted_data=None
+        self.load_parameters_from_file()
 
         
   
@@ -214,7 +216,9 @@ class MainWindow(ThreadedMainWindow):
         if pressed:
             try:
                 self.it = Interrogator(self.params.it.it_IP,self.params.it.PC_IP)
-                self.set_gains()
+                set_parameters(self.it.params, get_parameters(self.params.it))
+                time.sleep(0.1)
+                # self.it.set_gains()
                 # self.add_thread(self.it)
                 self.logText('Connected to interrogator')
             except Exception as e:
@@ -264,16 +268,10 @@ class MainWindow(ThreadedMainWindow):
             params=get_widget_values(it_parameters_dialog)
             set_parameters(self.params.it,params)
             if self.it!=None:
-                self.set_gains()
-                self.it.averaging_time_for_single_FBG_measurement=self.params.it.averaging_time_for_single_FBG_measurement
-            
-    def set_gains(self):
-        try:
-            for ch in range(self.it.channels):
-                self.it.set_gain(ch+1, auto=self.params.it.gains_auto[ch], manual_level=self.params.it.gains_manual[ch])
-                self.it.set_threshold(ch+1, self.params.it.thresholds[ch])
-        except Exception as e:
-            self.logWarningText(str(e))
+                set_parameters(self.it.params,params)
+                self.it.set_gains()
+                
+
             
     def set_recording_parameters(self):
         '''
@@ -289,7 +287,7 @@ class MainWindow(ThreadedMainWindow):
             params=get_widget_values(parameters_dialog)
             set_parameters(self.params.record,params)
             if self.it!=None:
-                self.set_gains()
+                self.it.set_gains()
                 
                 
     def set_static_measurements_params(self):
@@ -323,7 +321,7 @@ class MainWindow(ThreadedMainWindow):
             
     def single_measurement(self):
         try:
-            FBGs=self.it.get_averaged_single_FBG_measurement(self.params.it.averaging_time_for_single_FBG_measurement)
+            FBGs=self.it.get_averaged_single_FBG_measurement()
             if FBGs==None:
                 self.logWarningText('error. no data returned from Interrogator')
                 return 
@@ -548,7 +546,7 @@ class MainWindow(ThreadedMainWindow):
             
     def dynamical_measurements(self,pressed):
         if pressed:
-            msg=QMessageBox(2, 'Warning', 'Do you want to start dynamical scanning? \n Please ensure there are proper scanning settings  \n Ensure that the bed thickness is properly set!')
+            msg=QMessageBox(2, 'Warning', 'Do you want to start dynamical scanning? \n  \n Ensure that the bed thickness is properly set!')
             msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
             returnValue = msg.exec()
             if returnValue == QMessageBox.Ok:  
@@ -764,6 +762,8 @@ class MainWindow(ThreadedMainWindow):
             if Dicts is not None:
                 try:
                     set_parameters(self.params.it,Dicts['it'])
+                    if self.it!=None:
+                        set_parameters(self.it.params,Dicts['it'])
                     set_parameters(self.params.record,Dicts['recording'])
                     set_parameters(self.params.static,Dicts['static'])
                     set_parameters(self.params.dynamical,Dicts['dynamical'])
@@ -861,10 +861,11 @@ def set_widget_values(window,d:dict)->None:
 def set_parameters(obj, d:dict):
     for key in d:
         try:
-            
-            if '[' in d[key]:
-                d[key]=json.loads(d[key])
-            obj.__setattr__(key, d[key])
+            if hasattr(obj, key):
+                if '[' in d[key]:
+                    obj.__setattr__(key,json.loads(d[key]))
+                else:
+                    obj.__setattr__(key,d[key])
         except TypeError:
             obj.__setattr__(key, d[key])
             pass

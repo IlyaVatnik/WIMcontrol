@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>339</width>
-    <height>574</height>
+    <height>668</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -203,7 +203,7 @@
      <x>10</x>
      <y>490</y>
      <width>201</width>
-     <height>81</height>
+     <height>141</height>
     </rect>
    </property>
    <property name="title">
@@ -219,6 +219,23 @@
     </item>
     <item>
      <widget class="QLineEdit" name="lineEdit_averaging_time_for_single_FBG_measurement">
+      <property name="text">
+       <string>0.5</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="label_33">
+      <property name="text">
+       <string>Max allowed shift of FBG, nm</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLineEdit" name="lineEdit_max_wl_jump_nm">
       <property name="text">
        <string>0.5</string>
       </property>
