@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>897</width>
-    <height>935</height>
+    <width>1063</width>
+    <height>971</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -25,8 +25,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>877</width>
-         <height>874</height>
+         <width>1039</width>
+         <height>896</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -40,8 +40,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>859</width>
-             <height>345</height>
+             <width>1017</width>
+             <height>342</height>
             </rect>
            </property>
            <attribute name="label">
@@ -160,8 +160,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>859</width>
-             <height>345</height>
+             <width>1017</width>
+             <height>342</height>
             </rect>
            </property>
            <attribute name="label">
@@ -364,8 +364,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>859</width>
-             <height>345</height>
+             <width>98</width>
+             <height>28</height>
             </rect>
            </property>
            <attribute name="label">
@@ -406,8 +406,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>859</width>
-             <height>345</height>
+             <width>98</width>
+             <height>28</height>
             </rect>
            </property>
            <attribute name="label">
@@ -448,8 +448,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>859</width>
-             <height>345</height>
+             <width>98</width>
+             <height>28</height>
             </rect>
            </property>
            <attribute name="label">
@@ -779,8 +779,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>897</width>
-     <height>21</height>
+     <width>1063</width>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuTools">

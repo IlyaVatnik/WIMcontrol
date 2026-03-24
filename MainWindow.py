@@ -504,16 +504,18 @@ class MainWindow(ThreadedMainWindow):
         if pressed:
             self.long_term_measurement=Long_term_measurement(self.it, self.params.long_term,
                                                              self.saving_dir_path+str(self.params.long_term.file_name)+".long_dynamics")
+            self.add_thread([self.long_term_measurement])
             self.force_long_term_process.connect(self.long_term_measurement.run)
             self.logText('Start long-term measurement')
             self.long_term_measurement.is_running=True
             self.long_term_measurement.S_print[str].connect(self.logText)
             self.long_term_measurement.S_print_error[str].connect(self.logWarningText)
             
-            self.force_long_term_process.emit()
+            
             
             self.long_term_measurement.S_finished.connect(lambda: self.ui.pushButton_long_term_measurements.setChecked(False))
             self.long_term_measurement.S_finished.connect(self.kill_long_term_measurement)
+            self.force_long_term_process.emit()
         else:
             self.long_term_measurement.is_running=False
             
@@ -650,7 +652,7 @@ class MainWindow(ThreadedMainWindow):
         self.ui.label_folder_to_save.setText(self.saving_dir_path+'\\')
        
     def choose_file_to_load(self):
-        DataFilePath= str(QFileDialog.getOpenFileName(self, "Select Data File",'','*.fbgs *.spectrum *.static *.spectra' )).split("\',")[0].split("('")[1]
+        DataFilePath= str(QFileDialog.getOpenFileName(self, "Select Data File",'','*.fbgs *.spectrum *.static *.spectra *.long_dynamics' )).split("\',")[0].split("('")[1]
         if DataFilePath=='':
             self.logWarningText('file is not chosen or previous choice is preserved')
         self.file_to_load_path=DataFilePath

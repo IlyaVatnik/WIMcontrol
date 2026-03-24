@@ -27,8 +27,7 @@ class Long_term_meas_processor(QObject):
         
         self.channels_to_plot=channels_to_plot
         self.FBGs_to_plot=FBGs_to_plot
-        
-        
+      
         self.load_data()
         
     def load_data(self):
@@ -106,17 +105,18 @@ class Long_term_meas_processor(QObject):
                     FBG_dynamics=self._extract_FBG_wavelengths(self.FBGs_map,ch,ii)
                     axes[ii].plot(self.times/60,FBG_dynamics)
                     axes[ii].set_title(f"FBG {FBG}", loc="left", fontsize=10, pad=2)
-                plt.suptitle('ch {} of {}'.format(ch,  self.path_to_file.split('.')[0]))
+                plt.suptitle('ch {} of {}'.format(ch,  self.file_name.split('.')[0]))
                                     
    
             else: 
+                
                 fig=plt.figure()
                 self.figs_fbgs.append(fig)
                 plt.xlabel("Time, min")
                 plt.ylabel("FBG wavelength, nm")
                 FBG_dynamics=self._extract_FBG_wavelengths(self.FBGs_map,ch,0)
                 plt.plot(self.times/60,FBG_dynamics)
-                plt.title('FBG {}, ch {} of "{}"'.format(self.params.it.FBGs[ch-1][0],ch, self.path_to_file.split('.')[0]))
+                plt.title('FBG {}, ch {} of "{}"'.format(self.params.it.FBGs[ch-1][0],ch, self.file_name.split('.')[0]))
                 
            
             plt.tight_layout()
