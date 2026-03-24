@@ -31,7 +31,50 @@ class Static_meas_processor(QObject):
         
         self.load_data()
         
+    def load_data(self):
+
         
+        with open(self.file_name, 'r') as file:
+            
+            N_FBGs_list=None
+            while N_FBGs_list==None:
+                line = file.readline().strip()   # читаем только одну строку 
+                data = ast.literal_eval(line)
+                try: 
+                    N_FBGs_list=[len(x) for x in data[1]]
+                except TypeError:
+                    continue
+            times=[data[0]]
+            FBGs_interr=[data[1]]
+            FBGs_luna=[data[2]]
+            
+            
+            for line in file:
+                # Убираем пробелы и символы новой строки
+                line = line.strip()
+                
+                try:
+                    data = ast.literal_eval(line)
+                    if [len(x) for x in data[1]]==N_FBGs_list: ## добавляет только те строки, где количество решеток равно начальному.
+                        times.append(data[0])
+                        FBGs_interr.append(data[1])
+                        FBGs_luna.append(data[2])
+
+                    # Преобразование строки в список
+                       
+        
+                    # Извлечение переменных
+                except TypeError:
+                    pass
+
+        
+                except (ValueError, SyntaxError) as e:
+                    print(f"Ошибка при обработке строки: {line}. Ошибка: {e}")
+        times=np.array(times)
+        
+
+        # FBGs=np.array(FBGs_map)
+        return times, FBGs_interr,FBGs_luna     
         
 # Открываем файл для чтения
     def load_data(self):

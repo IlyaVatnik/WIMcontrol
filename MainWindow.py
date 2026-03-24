@@ -5,8 +5,8 @@ Created on Wed Jan 21 11:32:18 2026
 @author: Илья
 """
 
-__version__='1.4'
-__date__ = '2026.03.04'
+__version__='1.5'
+__date__ = '2026.03.24'
 
 import os
     
@@ -30,14 +30,20 @@ from AFR_interrogator.FBGRecorder import (read_fbg_stream_raw_lp,
                                           start_live_plot_session,record_to_file,record_and_plot,
                                           record_spectra_to_file,
                                           live_plot_wavelengths)
-from processing.process_static_data import Static_meas_processor as Static_processor
+
+
 from processing.process_spectra import Spectra_meas_processor as Spectra_meas_processor
 
 from measurements.static_measurements import Static_measurement as Static_measurement
-
 from measurements.static_measurements import Static_measurement_params as Static_measurement_params
+from processing.process_static_data import Static_meas_processor as Static_processor
+
 from measurements.dynamical_measurements import Dynamical_measurement as Dynamical_measurement
 from measurements.dynamical_measurements import Dynamical_measurement_params as Dynamical_measurement_params
+
+from measurements.long_term_measurements import Long_term_measurement as Long_term_measurement
+from measurements.long_term_measurements import Long_term_measurement_params as Long_term_measurement_params
+from processing.process_long_term_measurements import Long_term_meas_processor as Long_term_meas_processor
 
 
 from UIs.MainWindowUI import Ui_MainWindow
@@ -51,6 +57,8 @@ class Params_recording():
         self.write_every_nth=10
         self.plot_live_while_recording=False
         self.type_of_recording='FBG peaks'
+        self.file_name='1.fbgs'
+
 
      
 
@@ -64,12 +72,15 @@ class Params():
         self.record=Params_recording()
         self.static=Static_measurement_params()
         self.dynamical=Dynamical_measurement_params()
+        self.long_term=Long_term_measurement_params()
 
 
 class ThreadedMainWindow(QMainWindow):
     
     force_static_process=pyqtSignal()
     force_dynamical_process=pyqtSignal()
+    force_long_term_process=pyqtSignal()
+    
 
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
@@ -161,14 +172,16 @@ class MainWindow(ThreadedMainWindow):
         self.ui.LogField.clear()
         
     def init_interface(self):
-        self.ui.pushButton_set_it_parameters.pressed.connect(self.set_it_parameters)
-        self.ui.pushButton_set_static_measurements_params.pressed.connect(self.set_static_measurements_params)
-        self.ui.pushButton_set_dynamical_measurements_params.pressed.connect(self.set_dynamical_measurements_params)
+        
+        
+        
         
         self.ui.pushButton_choose_folder_to_save.clicked.connect(self.choose_folder_to_save)
         
 
         self.ui.pushButton_connect_it.toggled[bool].connect(self.connect_interrogator)
+        self.ui.pushButton_set_it_parameters.pressed.connect(self.set_it_parameters)
+        
         self.ui.pushButton_connect_printer.pressed.connect(self.connect_printer) 
         
         self.ui.pushButton_printer_homing.pressed.connect(self.printer_homing)
@@ -177,12 +190,19 @@ class MainWindow(ThreadedMainWindow):
         
         self.ui.pushButton_single_measurement.clicked.connect(self.single_measurement)
         self.ui.pushButton_save_single_spectrum.clicked.connect(self.save_single_spectrum)
+        
         self.ui.pushButton_start_recording.pressed.connect(self.recording)
         self.ui.pushButton_plot_live_dynamics.toggled[bool].connect(self.plot_live_dynamics)
         self.ui.pushButton_set_recording_parameters.pressed.connect(self.set_recording_parameters)
         
+        self.ui.pushButton_long_term_measurements.toggled[bool].connect(self.long_term_measurements)
+        self.ui.pushButton_set_long_term_measurements_params.pressed.connect(self.set_long_term_measurements_params)
+        
         self.ui.pushButton_static_measurements.toggled[bool].connect(self.static_measurements)
+        self.ui.pushButton_set_static_measurements_params.pressed.connect(self.set_static_measurements_params)
+        
         self.ui.pushButton_dynamical_measurements.toggled[bool].connect(self.dynamical_measurements)
+        self.ui.pushButton_set_dynamical_measurements_params.pressed.connect(self.set_dynamical_measurements_params)
         
         
         
@@ -289,6 +309,19 @@ class MainWindow(ThreadedMainWindow):
             if self.it!=None:
                 self.it.set_gains()
                 
+    def set_long_term_measurements_params(self):
+        '''
+        open dialog with static meas parameters
+        '''
+        d = get_parameters(self.params.long_term)
+        from UIs.long_term_recording_parameters_dialogUI import Ui_Dialog
+        parameters_dialog = QDialog()
+        ui = Ui_Dialog()
+        ui.setupUi(parameters_dialog)
+        set_widget_values(parameters_dialog,d)
+        if parameters_dialog.exec_() == QDialog.Accepted:
+            params=get_widget_values(parameters_dialog)
+            set_parameters(self.params.long_term,params)
                 
     def set_static_measurements_params(self):
         '''
@@ -424,7 +457,7 @@ class MainWindow(ThreadedMainWindow):
                 
                 try:
                     self.it.start_freq_stream(self.params.record.rep_rate)
-                    stats = record_to_file(self.it, self.saving_dir_path+FilePrefix+".fbgs", duration_sec=self.params.record.recording_duration,
+                    stats = record_to_file(self.it, self.saving_dir_path+self.params.record.file_name+".fbgs", duration_sec=self.params.record.recording_duration,
                                            channels=self.params.it.channels,FBGs=self.params.it.FBGs,write_every_n=self.params.record.write_every_nth)
                     self.logText("Recording finished: {}".format(stats))
                     self.it.stop_freq_stream()
@@ -442,7 +475,7 @@ class MainWindow(ThreadedMainWindow):
                         channels=self.params.it.channels,
                         FBGs=self.params.it.FBGs,
                         write_every_n=self.params.record.write_every_nth,
-                        filepath=self.saving_dir_path+FilePrefix+".fbgs",
+                        filepath=self.saving_dir_path+self.params.record.file_name+".fbgs",
                         duration_sec=self.params.record.recording_duration,
                         plot_channels=self.params.it.channels,
                         plot_FBGs=np.array(self.params.it.FBGs)-1,
@@ -460,11 +493,32 @@ class MainWindow(ThreadedMainWindow):
 
             record_spectra_to_file(self.it,
                                    write_every_n=self.params.record.write_every_nth,
-                                   filepath=self.saving_dir_path+FilePrefix+".spectra",
+                                   filepath=self.saving_dir_path+self.params.record.file_name+".spectra",
                                    duration_sec=self.params.record.recording_duration,
                                    channels=self.params.it.channels
                                    )
             self.logText("Recording of spectra finished:")
+            
+            
+    def long_term_measurements(self,pressed):
+        if pressed:
+            self.long_term_measurement=Long_term_measurement(self.it, self.params.long_term,
+                                                             self.saving_dir_path+str(self.params.long_term.file_name)+".long_dynamics")
+            self.force_long_term_process.connect(self.long_term_measurement.run)
+            self.logText('Start long-term measurement')
+            self.long_term_measurement.is_running=True
+            self.long_term_measurement.S_print[str].connect(self.logText)
+            self.long_term_measurement.S_print_error[str].connect(self.logWarningText)
+            
+            self.force_long_term_process.emit()
+            
+            self.long_term_measurement.S_finished.connect(lambda: self.ui.pushButton_long_term_measurements.setChecked(False))
+            self.long_term_measurement.S_finished.connect(self.kill_long_term_measurement)
+        else:
+            self.long_term_measurement.is_running=False
+            
+    def kill_long_term_measurement(self):
+        del self.long_term_measurement
                                 
     def static_measurements(self,pressed):
         if pressed:
@@ -666,6 +720,14 @@ class MainWindow(ThreadedMainWindow):
                 self.spectra_processor.S_print[str].connect(self.logText)
                 self.spectra_processor.plot_3d()
                 self.type_of_plotted_data='spectra'
+                
+                  
+            elif file_name.split('.')[1]=='long_dynamics':
+                self.long_term_processor=Long_term_meas_processor(self.file_to_load_path,self.params.it.channels,self.params.it.FBGs)
+                self.long_term_processor.S_print_error[str].connect(self.logWarningText)
+                self.long_term_processor.S_print[str].connect(self.logText)
+                self.long_term_processor.plot()
+                self.type_of_plotted_data='long_dynamics'
         except Exception:
             self.logWarningText(traceback.format_exc()) 
             
@@ -735,6 +797,7 @@ class MainWindow(ThreadedMainWindow):
         D['recording']=get_parameters(self.params.record)
         D['static']=get_parameters(self.params.static)
         D['dynamical']=get_parameters(self.params.dynamical)
+        D['long_term']=get_parameters(self.params.long_term)
         D['main_window']=get_widget_values(self)
         
         
@@ -767,6 +830,7 @@ class MainWindow(ThreadedMainWindow):
                     set_parameters(self.params.record,Dicts['recording'])
                     set_parameters(self.params.static,Dicts['static'])
                     set_parameters(self.params.dynamical,Dicts['dynamical'])
+                    set_parameters(self.params.long_term,Dicts['long_term'])
                     set_widget_values(self, Dicts['main_window'])
                     
                 except KeyError as e:

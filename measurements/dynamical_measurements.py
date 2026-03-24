@@ -62,7 +62,6 @@ class Dynamical_measurement(QObject):
     S_finished=pyqtSignal()  # signal to finish
     S_print=pyqtSignal(str) # signal used to print into main text browser
     S_print_error=pyqtSignal(str) # signal used to print errors into main text browser
-    S_finished=pyqtSignal()  # signal to finish
     S_plot_queue_ready = pyqtSignal(object)   # передаем Queue для GUI live-plot
     def __init__(self,
                  it,
