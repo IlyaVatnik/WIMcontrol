@@ -5,8 +5,8 @@ Created on Wed Jan 21 11:32:18 2026
 @author: Илья
 """
 
-__version__='1.5'
-__date__ = '2026.03.24'
+__version__='1.6'
+__date__ = '2026.03.30'
 
 import os
     
@@ -777,6 +777,21 @@ class MainWindow(ThreadedMainWindow):
                 source_file_name=os.path.basename(self.file_to_load_path).split('.')[0]         
                 file_name=source_file_name+'.csv'
                 csv_line_saver(path+'//'+file_name, time, shifts, 'Time, s', 'Wavelength, nm')
+                
+            elif self.type_of_plotted_data=='long_dynamics':
+                ch=int(self.ui.comboBox_channel_to_plot_static_slice.currentText())
+                FBG=int(self.ui.comboBox_FBG_to_plot_static_slice.currentText())
+                index=self.params.it.FBGs[ch-1].index(FBG)
+                axis=self.long_term_processor.figs_fbgs[ch-1].axes[index]
+                line = axis.get_lines()[0]
+                time = line.get_xdata()
+                shifts = line.get_ydata()
+                path=os.path.dirname(self.file_to_load_path)
+                source_file_name=os.path.basename(self.file_to_load_path).split('.')[0]         
+                file_name=source_file_name+'.csv'
+                csv_line_saver(path+'//'+file_name, time, shifts, 'Time, s', 'Wavelength, nm')
+                
+                
                 
        # строки
                 

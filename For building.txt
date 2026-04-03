@@ -7,3 +7,44 @@ pyinstaller --clean --onedir ^
   --exclude-module PySide6 --exclude-module PySide2 ^
   --add-data "Params.txt;." ^
   WIM_control.py
+
+
+cd /d E:\!WorkFolder\!Projects\WIMcontrol
+
+pyinstaller --clean --onedir ^
+  -p . ^
+  -p "E:\!WorkFolder\!Projects" ^
+  --exclude-module PySide6 --exclude-module PySide2 ^
+  --add-data "Params.txt;." ^
+  WIM_control.py
+
+_________________________________
+Скачай Python 3.11.x Windows installer (64-bit) с:
+https://www.python.org/downloads/windows/
+При установке обязательно:
+✅ Add python.exe to PATH
+✅ (желательно) Install for all users
+py -3.11 --version
+
+py -3.11 -m venv C:\venvs\wim311
+C:\venvs\wim311\Scripts\activate
+
+python -m pip install --upgrade pip
+pip install pyinstaller
+pip install pyqt5 numpy matplotlib scipy requests pyserial
+
+
+cd /d E:\!WorkFolder\!Projects\WIMcontrol
+
+
+pyinstaller --clean --onedir ^
+--name WIM_control ^
+--paths . ^
+--paths "E:\!WorkFolder\!Projects" ^
+--exclude-module sklearn ^
+--exclude-module jupyter ^
+--exclude-module IPython ^
+--exclude-module notebook ^
+--exclude-module pandas ^
+--add-data "Params.txt;." ^
+WIM_control.py
