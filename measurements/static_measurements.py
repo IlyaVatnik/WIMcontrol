@@ -2,8 +2,8 @@ from PyQt5.QtCore import pyqtSignal, QObject
 import time
 import numpy as np
 
-__version__='1.3'
-__date__ = '2026.03.09'
+__version__='1.4'
+__date__ = '2026.04.03'
 
 class Static_measurement_params():
     def __init__(self):      
@@ -95,8 +95,7 @@ class Static_measurement(QObject):
                         time_tic_2=time.time()
                         time_remaining=(N_steps-ii)*(time_tic_2-time_tic_1)
                         self.S_print.emit('Scanning at X={} Y={}, step {} of {}, time elapsed for step {:.1f} s, time remaining={:.0f} min {:.1f} s'.format(x,y,ii,N_steps,(time_tic_2-time_tic_1),time_remaining//60,np.mod(time_remaining,60)))
-                        time_tic_1=time_tic_2
-                   
+
                     self.printer.safe_y_pass(x=x, y_start=y, y_end=y, z_safe=self.z_safe, z_contact=self.z_safe)
             
                     time.sleep(0.1)

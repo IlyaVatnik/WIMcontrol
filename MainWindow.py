@@ -5,8 +5,8 @@ Created on Wed Jan 21 11:32:18 2026
 @author: Илья
 """
 
-__version__='1.6'
-__date__ = '2026.03.30'
+__version__='1.7'
+__date__ = '2026.04.03'
 
 import os
     
@@ -69,6 +69,7 @@ class Params_recording():
 class Params():
     def __init__(self):
         self.it=Params_interrogator()
+        self.printer=PrinterConfig()
         self.record=Params_recording()
         self.static=Static_measurement_params()
         self.dynamical=Dynamical_measurement_params()
@@ -143,7 +144,7 @@ class MainWindow(ThreadedMainWindow):
         self.file_to_load_path=None
         
         
-        self.ParametersFileName='Params.txt'
+        self.ParametersFileName='Large_printer.parameters'
         self.setWindowTitle("WIM experiment control V."+version+', released '+date)
         
         # self.it
@@ -155,7 +156,7 @@ class MainWindow(ThreadedMainWindow):
         self.printer=None
         
         self.type_of_plotted_data=None
-        self.load_parameters_from_file()
+        self.load_parameters_from_file(self.ParametersFileName)
 
         
   
@@ -183,7 +184,7 @@ class MainWindow(ThreadedMainWindow):
         self.ui.pushButton_set_it_parameters.pressed.connect(self.set_it_parameters)
         
         self.ui.pushButton_connect_printer.pressed.connect(self.connect_printer) 
-        
+        self.ui.pushButton_set_printer_parameters.pressed.connect(self.set_printer_parameters) 
         self.ui.pushButton_printer_homing.pressed.connect(self.printer_homing)
         self.ui.pushButton_printer_move_bed_down.pressed.connect(self.printer_move_bed_down)
         
@@ -226,7 +227,7 @@ class MainWindow(ThreadedMainWindow):
       
     def init_menu_bar(self):
         self.ui.action_save_parameters.triggered.connect(self.save_parameters_to_file)
-        self.ui.action_load_parameters.triggered.connect(self.load_parameters_from_file)
+        self.ui.action_load_parameters.triggered.connect(lambda : self.load_parameters_from_file())
         self.ui.action_delete_all_figures.triggered.connect(self.delete_all_figures)      
         
         
@@ -250,9 +251,16 @@ class MainWindow(ThreadedMainWindow):
             
     def connect_printer(self):
         try:
-            self.printer = Printer(PrinterConfig())
+            self.printer = Printer(self.params.printer)
             # self.add_thread(self.it)
-            self.logText('Connected to printer')
+            limits=self.printer._limits
+            self.logText('Connected to printer {}'.format(self.printer.printer_info()['hostname'])+ '\n' +
+                         'Printer total field (with no additional toolhead) is \n (x_mix={}, x_max={}, y_min={}, y_max={}, z_min={}, z_max={} mm)'.format(limits[0][0],
+                                                                                                                                               limits[0][1],
+                                                                                                                                               limits[1][0],
+                                                                                                                                               limits[1][1],
+                                                                                                                                               limits[2][0],
+                                                                                                                                               limits[2][1]))
             
         except Exception as e:
             self.logWarningText(str(e))
@@ -268,7 +276,7 @@ class MainWindow(ThreadedMainWindow):
             
     def printer_move_bed_down(self):
         try:
-            self.printer.move_z(z=300,speed_mm_s=50)
+            self.printer.move_z(z=self.printer.get_limits_cached()[2][1]-10,speed_mm_s=50)
             self.logText('Printer bed is down')
                 
         except Exception as e:
@@ -290,7 +298,22 @@ class MainWindow(ThreadedMainWindow):
             if self.it!=None:
                 set_parameters(self.it.params,params)
                 self.it.set_gains()
-                
+                   
+    def set_printer_parameters(self):
+        '''
+        open dialog with analyzer parameters
+        '''
+        d = get_parameters(self.params.printer)
+        from UIs.printer_parameters_dialogUI import Ui_Dialog
+        printer_parameters_dialog = QDialog()
+        ui = Ui_Dialog()
+        ui.setupUi(printer_parameters_dialog)
+        set_widget_values(printer_parameters_dialog,d)
+        if printer_parameters_dialog.exec_() == QDialog.Accepted:
+            params=get_widget_values(printer_parameters_dialog)
+            set_parameters(self.params.printer,params)
+            if self.printer!=None:
+                set_parameters(self.printer.params,params)
 
             
     def set_recording_parameters(self):
@@ -449,7 +472,6 @@ class MainWindow(ThreadedMainWindow):
 
            
     def recording(self):
-        FilePrefix=self.ui.lineEdit_file_name_for_recording.text()
         self.logText('start recording')
         
         if self.params.record.type_of_recording=='FBG peaks':
@@ -815,7 +837,9 @@ class MainWindow(ThreadedMainWindow):
         D['static']=get_parameters(self.params.static)
         D['dynamical']=get_parameters(self.params.dynamical)
         D['long_term']=get_parameters(self.params.long_term)
+        D['printer']=get_parameters(self.params.printer)
         D['main_window']=get_widget_values(self)
+     
         
         
 
@@ -824,7 +848,13 @@ class MainWindow(ThreadedMainWindow):
             l=[key for key in list(D[k].keys()) if ('path' in key)]
             for key in l:
                 del D[k][key]
-    
+        
+        SaveFilePath = str(QFileDialog.getSaveFileName(self, "Save parameter file", '', '*.parameters')).split("\',")[0].split("('")[1]
+        if SaveFilePath == '':
+            self.logWarningText('File is not chosen or previous choice is preserved')
+        self.ParametersFileName = SaveFilePath
+        
+
         f=open(self.ParametersFileName,'w')
         json.encoder.FLOAT_REPR = lambda x: format(x, '.5f') if (x<0.01) else x
         json.dump(D,f)
@@ -832,9 +862,16 @@ class MainWindow(ThreadedMainWindow):
         self.logText('\nParameters saved\n')
         
         
-    def load_parameters_from_file(self):
+    def load_parameters_from_file(self,file_path=None):
         try:
-            f=open(self.ParametersFileName)
+            if file_path==None:
+                DataFilePath= str(QFileDialog.getOpenFileName(self, "Select Parameter File",'','*.parameters' )).split("\',")[0].split("('")[1]
+                if DataFilePath=='':
+                    self.logWarningText('file is not chosen or previous choice is preserved')
+                self.ParametersFileName=DataFilePath
+            else:
+                DataFilePath=file_path
+            f=open(DataFilePath)
             Dicts=json.load(f)
             f.close()
             
@@ -848,6 +885,7 @@ class MainWindow(ThreadedMainWindow):
                     set_parameters(self.params.static,Dicts['static'])
                     set_parameters(self.params.dynamical,Dicts['dynamical'])
                     set_parameters(self.params.long_term,Dicts['long_term'])
+                    set_parameters(self.params.printer,Dicts['printer'])
                     set_widget_values(self, Dicts['main_window'])
                     
                 except KeyError as e:

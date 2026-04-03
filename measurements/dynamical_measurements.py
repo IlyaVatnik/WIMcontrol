@@ -10,8 +10,8 @@ import numpy as np
 from AFR_interrogator.FBGRecorder import record_to_file_from_queue, FrameFanout,record_spectra_to_file
 from queue import Queue
 
-__version__='1.4'
-__date__ = '2026.03.09'
+__version__='1.5'
+__date__ = '2026.04.03'
 
 
 MAX_SIZE_QUEUE=5000
@@ -132,7 +132,7 @@ class Dynamical_measurement(QObject):
                                              max_z=self.params.attach_max_z)
             
             ### main loop
-            if self.params.y_velocity>self.printer.cfg.max_velocity_mm_s:
+            if self.params.y_velocity>self.printer.params.max_velocity_mm_s:
                 self.S_print_error.emit('Velocity along y exceeds the limits set for the printer in printer configuration script')
                 self.S_print_error.emit('Stop dynamical measurements')
                 return
@@ -162,7 +162,7 @@ class Dynamical_measurement(QObject):
                 #     self.it.start_freq_stream()
 
     
-            time_to_save=1.5*calc_time_of_moving(abs(self.params.y_stop-self.params.y_start),self.params.y_velocity,self.printer.cfg.max_accel_mm_s2)
+            time_to_save=1.5*calc_time_of_moving(abs(self.params.y_stop-self.params.y_start),self.params.y_velocity,self.printer.params.max_accel_mm_s2)
             self.S_print.emit('Time for one movement is {:.2f} s'.format(time_to_save))
            
             for x in X_array:
@@ -183,10 +183,10 @@ class Dynamical_measurement(QObject):
                         y_c=d['y']
                         if x_c!=x or y_c!=self.params.y_start:
                             self.printer.safe_y_pass(x=x,y_start=self.params.y_start, y_end=self.params.y_start,
-                                                     z_safe=self.z_safe,z_contact=self.z_safe,
-                                                     approach_speed_mm_s=self.safe_velocity_mm_s)
+                                                     z_safe=self.z_safe,z_contact=self.z_safe)
+                                                     
                     
-                        self.printer.move_z(z=self.z_contact, speed_mm_s=self.safe_velocity_mm_s)
+                        self.printer.move_z(z=self.z_contact)
                     
             
                         
@@ -252,7 +252,7 @@ class Dynamical_measurement(QObject):
     def interrupted(self,message,error=False):
         self.it.stop_freq_stream()
         self.fan.stop(timeout=1.0)
-        self.printer.move_z(z=self.z_safe, speed_mm_s=self.safe_velocity_mm_s,wait=False)
+        self.printer.move_z(z=self.z_safe,wait=False)
         if error:
             self.S_print_error.emit(message)
         else:
