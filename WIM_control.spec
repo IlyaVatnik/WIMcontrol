@@ -5,7 +5,7 @@ a = Analysis(
     ['WIM_control.py'],
     pathex=['.', 'E:\\!WorkFolder\\!Projects'],
     binaries=[],
-    datas=[('Params.txt', '.')],
+    datas=[('Large_printer.parameters', '.'), ('Small_printer.parameters', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

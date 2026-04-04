@@ -5,8 +5,8 @@ Created on Wed Jan 21 11:32:18 2026
 @author: Илья
 """
 
-__version__='1.7'
-__date__ = '2026.04.03'
+__version__='1.7.1'
+__date__ = '2026.04.05'
 
 import os
     
@@ -810,7 +810,7 @@ class MainWindow(ThreadedMainWindow):
                 shifts = line.get_ydata()
                 path=os.path.dirname(self.file_to_load_path)
                 source_file_name=os.path.basename(self.file_to_load_path).split('.')[0]         
-                file_name=source_file_name+'.csv'
+                file_name=source_file_name+' ch='+str(ch)+' FBG='+str(FBG) + '.csv'
                 csv_line_saver(path+'//'+file_name, time, shifts, 'Time, s', 'Wavelength, nm')
                 
                 

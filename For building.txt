@@ -46,5 +46,6 @@ pyinstaller --clean --onedir ^
 --exclude-module IPython ^
 --exclude-module notebook ^
 --exclude-module pandas ^
---add-data "Params.txt;." ^
+--add-data "Large_printer.parameters;." ^
+--add-data "Small_printer.parameters;." ^
 WIM_control.py

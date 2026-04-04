@@ -92,7 +92,7 @@ class Ui_Dialog(object):
         self.lineEdit_safe_yx_speed_mm_s.setText(_translate("Dialog", "100"))
         self.label_41.setText(_translate("Dialog", "safe xy speed, mm/s"))
         self.lineEdit_safe_z_speed_mm_s.setText(_translate("Dialog", "30"))
-        self.label_42.setText(_translate("Dialog", "safe xy speed, mm/s"))
+        self.label_42.setText(_translate("Dialog", "safe z speed, mm/s"))
 
 
 if __name__ == "__main__":

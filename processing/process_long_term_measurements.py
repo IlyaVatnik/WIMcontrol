@@ -6,8 +6,8 @@ import ast
 from scipy.interpolate import griddata
 from PyQt5.QtCore import QObject,pyqtSignal
 
-__version__='1.0'
-__date__ = '2026.03.24'
+__version__='1.1'
+__date__ = '2026.04.05'
 
 class Long_term_meas_processor(QObject):
     S_print=pyqtSignal(str) # signal used to print into main text browser
@@ -68,7 +68,7 @@ class Long_term_meas_processor(QObject):
 
         
                 except (ValueError, SyntaxError) as e:
-                    print(f"Ошибка при обработке строки: {line}. Ошибка: {e}")
+                    self.S_print_error.emit(f"Ошибка при обработке строки: {line}. Ошибка: {e}")
         self.times=np.array(times)
         self.FBGs_map=FBGs_map
 

@@ -196,7 +196,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>safe xy speed, mm/s</string>
+     <string>safe z speed, mm/s</string>
     </property>
    </widget>
    <zorder>label_36</zorder>
