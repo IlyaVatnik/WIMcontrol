@@ -26,8 +26,7 @@ import traceback
 
 from Printer_control.Printer import Printer, PrinterConfig
 from AFR_interrogator.interrogator import Interrogator,Params_interrogator
-from AFR_interrogator.FBGRecorder import (read_fbg_stream_raw_lp,
-                                          start_live_plot_session,record_to_file,record_and_plot,
+from AFR_interrogator.FBGRecorder import (start_live_plot_session,record_to_file,record_and_plot,
                                           record_spectra_to_file,
                                           live_plot_wavelengths)
 
@@ -40,6 +39,7 @@ from processing.process_static_data import Static_meas_processor as Static_proce
 
 from measurements.dynamical_measurements import Dynamical_measurement as Dynamical_measurement
 from measurements.dynamical_measurements import Dynamical_measurement_params as Dynamical_measurement_params
+from processing.process_dynamical_data import Dynamical_meas_processor as Dynamical_meas_processor
 
 from measurements.long_term_measurements import Long_term_measurement as Long_term_measurement
 from measurements.long_term_measurements import Long_term_measurement_params as Long_term_measurement_params
@@ -685,38 +685,14 @@ class MainWindow(ThreadedMainWindow):
         try:
             file_name=os.path.basename(self.file_to_load_path)
             if file_name.split('.')[1]=='fbgs':
-                colors = plt.cm.tab10.colors
-                times, channels, channel_list, FBGs_list,other_params = read_fbg_stream_raw_lp(self.file_to_load_path)
-                self.logText('In this file there are channels {} and FBGs {} in these channels'.format(channel_list,FBGs_list))
-                self.figs_fbgs=[]
-                for ch in self.params.it.channels:
-                    N_FBG=len(self.params.it.FBGs[ch-1])
-                    if N_FBG>1:
-                        
-                        fig,axes=plt.subplots(nrows=N_FBG,sharex=True)
-                        self.figs_fbgs.append(fig)
-                        fig.supxlabel("Time, s")
-                        fig.supylabel("FBG wavelength, nm")
-                        for ii,FBG in enumerate(self.params.it.FBGs[ch-1]):
-                            axes[ii].plot(times - times[0], channels[ch][ii+1],color=colors[ii % len(colors)])
-                            axes[ii].set_title(f"FBG {FBG}", loc="left", fontsize=10, pad=2)
-                        plt.suptitle('ch {} of {}, v_y={} mm/s'.format(ch, file_name.split('.')[0], other_params['y_velocity']))
-                                            
-    
-                    else: 
-                        fig=plt.figure()
-                        self.figs_fbgs.append(fig)
-                        plt.xlabel("Time, s")
-                        plt.ylabel("FBG wavelength, nm")
-                        plt.plot(times - times[0], channels[ch][self.params.it.FBGs[ch-1][0]])
-                        plt.title('FBG {}, ch {} of "{}"'.format(self.params.it.FBGs[ch-1][0],ch, file_name.split('.')[0]))
-                        
-                   
-                    plt.tight_layout()
-                    
-                plt.show()
-                self.type_of_plotted_data='fbgs' 
-                self.logText('Other parameters of the record are {} '.format(other_params))       
+                self.dynamical_processor=Dynamical_meas_processor(self.file_to_load_path,self.params.it.channels,self.params.it.FBGs)
+                self.dynamical_processor.S_print_error[str].connect(self.logWarningText)
+                self.dynamical_processor.S_print[str].connect(self.logText)
+                self.dynamical_processor.load_data()
+                self.dynamical_processor.plot()
+                self.type_of_plotted_data='fbgs'
+                
+
                 
             elif file_name.split('.')[1]=='spectrum':
                 with open(self.file_to_load_path,'rb') as f:

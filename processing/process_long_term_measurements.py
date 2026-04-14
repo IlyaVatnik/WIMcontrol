@@ -12,7 +12,8 @@ __date__ = '2026.04.05'
 class Long_term_meas_processor(QObject):
     S_print=pyqtSignal(str) # signal used to print into main text browser
     S_print_error=pyqtSignal(str) # signal used to print errors into main text browser
- 
+    S_weight_calculated=pyqtSignal(float)
+    
     def __init__(self, path_to_file:str,
                  channels_to_plot,
                  FBGs_to_plot):
@@ -27,6 +28,7 @@ class Long_term_meas_processor(QObject):
         
         self.channels_to_plot=channels_to_plot
         self.FBGs_to_plot=FBGs_to_plot
+        
       
         self.load_data()
         
@@ -124,7 +126,8 @@ class Long_term_meas_processor(QObject):
         plt.show()     
    
  
-
+    def calculate_weight(self):
+        return 0
    
 
     

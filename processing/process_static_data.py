@@ -220,9 +220,9 @@ class Static_meas_processor(QObject):
     def plot_all_3d_plots(self):
         for ch in self.channels_to_plot:
             for FBG in self.FBGs_to_plot[ch-1]:
-                
                 FBG_wavelengths_pristine=self._extract_FBG_wavelengths(self.FBGs_map_pristine,ch,FBG)
                 FBG_wavelengths_pressed=self._extract_FBG_wavelengths(self.FBGs_map_pressed,ch,FBG)
+                
                 try:
                     fig,ax=self.plot_3d(self.coords,FBG_wavelengths_pressed-FBG_wavelengths_pristine)
 
@@ -231,8 +231,26 @@ class Static_meas_processor(QObject):
                     
                 except:
                     pass
+                
         plt.show(block=False) 
-
+        
+        
+    def create_calibration_curves(self,axis='Y'):
+        data_to_save=[]
+        for ch in self.channels_to_plot:
+            for FBG in self.FBGs_to_plot[ch-1]:
+                Z_pristine=self._extract_FBG_wavelengths(self.FBGs_map_pristine,ch,FBG)
+                Z_pressed=self._extract_FBG_wavelengths(self.FBGs_map_pressed,ch,FBG)
+                Z=Z_pressed-Z_pristine
+                x, y = self.coords[:, 0], self.coords[:, 1]
+                index=np.argmax(Z)
+                x,shifts,coord_nearest=self.get_line_along_coord(x[index],axis,ch,FBG)
+                
+                data_to_save.append([ch,FBG,x,shifts])
+            
+        np.save(self.file_name.split('.static')[0]+'.static_calib',data_to_save)
+                
+      
     
 
 #%%
