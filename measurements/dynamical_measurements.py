@@ -214,8 +214,9 @@ class Dynamical_measurement(QObject):
                                                    speed_mm_s=self.params.y_velocity, wait=False)
      
                         self.save_data(path, time_to_save, other_params=d)
-                        if self.calculate_weight:
-                            self.S_file_ready.emit(path)
+                        if self.params.calculate_weight:
+                            if self.params.type_of_data_to_record=='FBG peaks':
+                                self.S_file_ready.emit(path+'.fbgs')
                         
                         if not self.is_running:
                             self.interrupted('Scanning interrupted')
@@ -241,8 +242,10 @@ class Dynamical_measurement(QObject):
                    
                             self.save_data(path, time_to_save, other_params=d)
                             
-                            if self.calculate_weight:
-                                self.S_file_ready.emit(path)
+                            if self.params.calculate_weight:
+                                if self.params.type_of_data_to_record=='FBG peaks':
+                                    self.S_file_ready.emit(path+'.fbgs')
+                        
                     
                         
                     

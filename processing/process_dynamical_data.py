@@ -10,12 +10,12 @@ __version__='2'
 __date__ = '2026.04.15'
 
 
-wheelset_width=70
+wheelset_width=85
 
 class Dynamical_meas_processor(QObject):
     S_print=pyqtSignal(str) # signal used to print into main text browser
     S_print_error=pyqtSignal(str) # signal used to print errors into main text browser
-    S_weight_calculated=pyqtSignal(float)
+    S_weight_calculated=pyqtSignal(float,float,float)
  
     def __init__(self, path_to_file:str,
                  channels_to_plot,
@@ -89,7 +89,7 @@ class Dynamical_meas_processor(QObject):
         plt.show()
    
     def get_maximum_shifts(self):
-        time_window=0.2
+        time_window=0.1
         time_window_index=int(time_window/(self.times[1] - self.times[0]))
         dict_shifts={}
         for ch in self.channels_to_plot:
@@ -98,33 +98,39 @@ class Dynamical_meas_processor(QObject):
             for ii,FBG in enumerate(self.FBGs_to_plot[ch-1]):
                 
                 initial_wavelength=np.mean(self.channels[ch][ii+1][0:time_window_index])
-                index_max=np.argmax(abs(self.channels[ch][ii+1]))
+                index_max=np.argmax(abs(self.channels[ch][ii+1]-initial_wavelength))
                 maximum_wavelength=np.mean(self.channels[ch][ii+1][int(index_max-time_window/2):int(index_max+time_window/2)])
                 dict_shifts[ch][FBG]=maximum_wavelength-initial_wavelength
+                print(initial_wavelength,maximum_wavelength,FBG)
         return dict_shifts
-                                        
+                             
+
+            
     def _cost_function(self,x,dict_calibration,dict_shifts):
         weight, x_left_wheel=x
         cost=0
         for ch in self.channels_to_plot:
             for ii,FBG in enumerate(self.FBGs_to_plot[ch-1]):
-                predicted_signal=weight*(FBG_static_response_function(x_left_wheel,*dict_calibration[ch][FBG])+FBG_static_response_function(x_left_wheel+wheelset_width,*dict_calibration[ch][FBG]))
+                predicted_signal=weight/2*(FBG_static_response_function(x_left_wheel,*dict_calibration[ch][FBG])+FBG_static_response_function(x_left_wheel+wheelset_width,*dict_calibration[ch][FBG]))
                 cost+=abs(dict_shifts[ch][FBG]-predicted_signal)
+                # print(predicted_signal,dict_shifts[ch][FBG],ch,FBG)
         return cost
  
     def calculate_weight(self):
         dict_shifts=self.get_maximum_shifts()
-        x0=[50,30]
+        x0=[100,150]
         result = minimize(self._cost_function,  x0,  args=(self.dict_calibration, dict_shifts),   method="BFGS")
         weight,x_0=result.x
+        # print(weight,x_0,x_0+wheelset_width)
         return weight,x_0
     
     def calculate_weight_from_file(self,file_path):
-        
         self.file_name=file_path
         self.load_data()
         weight,x_0=self.calculate_weight()
         self.S_weight_calculated.emit(weight,x_0,x_0+wheelset_width)
+        
+        # print()
         return weight,x_0,x_0+wheelset_width
    
 def FBG_static_response_function(x,A,x_0,w):
@@ -134,8 +140,12 @@ def FBG_static_response_function(x,A,x_0,w):
 #%%
 if __name__=='__main__':
     #
-    path_to_file=r"D:\Ilya\1.fbgs"
-
+    path_to_file=r"D:\Ilya\WIMcontrol\data\x=206 mm forward N=0.fbgs"
+    calibration_file_path=r"C:\Users\Ilya\Desktop\1.setup_calib"
+    p=Dynamical_meas_processor(path_to_file, [1], [[1,2,3,4,5]],calibration_file_path=calibration_file_path)
+    p.load_data()
+    p.plot()
+    p.calculate_weight()
 
 
   

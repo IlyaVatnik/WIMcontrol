@@ -116,7 +116,7 @@ class GaugeWidget(QWidget):
         painter.setFont(QFont("Arial", 10))
         painter.drawText(QRectF(-50, 30, 100, 30),
                          Qt.AlignCenter,
-                         f"{self._value:.2f} g")
+                         f"{self._value:.0f} g")
 
 
 
@@ -176,8 +176,8 @@ class AxisWidget(QWidget):
 
         painter.setPen(Qt.blue)
         painter.drawText(int(x1p) - 30, y - 15, 60, 15,
-                         Qt.AlignCenter, f"{self._x1:.2f}")
+                         Qt.AlignCenter, f"{self._x1:.0f}")
 
         painter.setPen(Qt.red)
         painter.drawText(int(x2p) - 30, y + 10, 60, 15,
-                         Qt.AlignCenter, f"{self._x2:.2f}")
+                         Qt.AlignCenter, f"{self._x2:.0f}")

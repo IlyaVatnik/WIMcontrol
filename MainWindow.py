@@ -163,7 +163,7 @@ class MainWindow(ThreadedMainWindow):
         self.load_parameters_from_file(self.ParametersFileName)
 
         
-    def load_gauge_widget(self,weight_min=0,weight_max=200,x_min=0,x_max=300):
+    def load_gauge_widget(self,weight_min=0,weight_max=400,x_min=0,x_max=300):
             self.gauge_window = GaugeWidget.GaugeWindow(weight_min,weight_max,x_min,x_max)
             self.gauge_window.show()
             
@@ -223,6 +223,7 @@ class MainWindow(ThreadedMainWindow):
         
 
         self.ui.pushButton_choose_file_to_load.clicked.connect(self.choose_file_to_load)
+        # self.ui.pushButton_create_calibration_file.connect(self.create_calibration_file)
         self.ui.pushButton_plot_from_file.clicked.connect(self.plot_from_file)
         self.ui.pushButton_plot_single_slice_of_static.pressed.connect(self.plot_single_slice_of_static)
         self.ui.pushButton_save_single_line_to_csv.pressed.connect(self.save_single_line_to_csv)
@@ -779,7 +780,11 @@ class MainWindow(ThreadedMainWindow):
             self.logWarningText(traceback.format_exc()) 
             
                 
-            
+    # def create_calibration_file(self):
+    #     try:
+    #         self.static_processor.create_calibration_curves
+    #     except Exception as e:
+    #         self.logWarningText(e)
 
       
     def plot_single_slice_of_static(self):
@@ -872,7 +877,7 @@ class MainWindow(ThreadedMainWindow):
             for key in l:
                 del D[k][key]
         
-        SaveFilePath = str(QFileDialog.getSaveFileName(self, "Save parameter file", '', '*.parameters')).split("\',")[0].split("('")[1]
+        SaveFilePath = str(QFileDialog.getSaveFileName(self, "Save parameter file", self.path_to_main, '*.parameters')).split("\',")[0].split("('")[1]
         if SaveFilePath == '':
             self.logWarningText('File is not chosen or previous choice is preserved')
         self.ParametersFileName = SaveFilePath
