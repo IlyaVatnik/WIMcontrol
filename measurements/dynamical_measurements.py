@@ -10,8 +10,8 @@ import numpy as np
 from AFR_interrogator.FBGRecorder import record_to_file_from_queue, FrameFanout,record_spectra_to_file
 from queue import Queue
 
-__version__='1.5'
-__date__ = '2026.04.03'
+__version__='2.0'
+__date__ = '2026.04.15'
 
 
 MAX_SIZE_QUEUE=5000
@@ -56,6 +56,8 @@ class Dynamical_measurement_params():
         self.include_reverse=False
         self.type_of_data_to_record='FBG peaks'
         
+        self.calculate_weight=False
+        
 
 class Dynamical_measurement(QObject):
   
@@ -63,6 +65,9 @@ class Dynamical_measurement(QObject):
     S_print=pyqtSignal(str) # signal used to print into main text browser
     S_print_error=pyqtSignal(str) # signal used to print errors into main text browser
     S_plot_queue_ready = pyqtSignal(object)   # передаем Queue для GUI live-plot
+    
+    S_file_ready=pyqtSignal(str)
+    
     def __init__(self,
                  it,
                  printer,
@@ -209,7 +214,8 @@ class Dynamical_measurement(QObject):
                                                    speed_mm_s=self.params.y_velocity, wait=False)
      
                         self.save_data(path, time_to_save, other_params=d)
-                     
+                        if self.calculate_weight:
+                            self.S_file_ready.emit(path)
                         
                         if not self.is_running:
                             self.interrupted('Scanning interrupted')
@@ -235,6 +241,8 @@ class Dynamical_measurement(QObject):
                    
                             self.save_data(path, time_to_save, other_params=d)
                             
+                            if self.calculate_weight:
+                                self.S_file_ready.emit(path)
                     
                         
                     

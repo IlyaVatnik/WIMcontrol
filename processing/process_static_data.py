@@ -4,10 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import ast
 from scipy.interpolate import griddata
+from scipy.optimize import curve_fit
 from PyQt5.QtCore import QObject,pyqtSignal
 
-__version__='1.1'
-__date__ = '2026.02.13'
+__version__='2'
+__date__ = '2026.04.15'
 
 class Static_meas_processor(QObject):
     S_print=pyqtSignal(str) # signal used to print into main text browser
@@ -150,7 +151,7 @@ class Static_meas_processor(QObject):
         Z_pressed=self._extract_FBG_wavelengths(self.FBGs_map_pressed,ch,FBG_number)
         Z=Z_pressed-Z_pristine
         x, y = self.coords[:, 0], self.coords[:, 1]
-        index=np.argmax(Z)
+        index=np.argmax(abs(Z))
         return x[index],y[index],Z[index]
         
     def get_line_along_coord(self,x0,axis,ch,FBG_number):
@@ -235,29 +236,74 @@ class Static_meas_processor(QObject):
         plt.show(block=False) 
         
         
-    def create_calibration_curves(self,axis='Y'):
+    def create_calibration_curves(self,axis_to_average_over='Y'):
+        colors = plt.cm.tab10.colors
+        weight=self.file_name.split('weight=')[1].split(' g')[0]
+        length_to_average_over=25 #mm
         data_to_save=[]
+        
+        fig1=plt.figure()
+        plt.xlabel('Position, mm')
+        plt.ylabel('Response, nm')
+        dict_to_save={}
         for ch in self.channels_to_plot:
+            dict_to_save[ch]={}
             for FBG in self.FBGs_to_plot[ch-1]:
                 Z_pristine=self._extract_FBG_wavelengths(self.FBGs_map_pristine,ch,FBG)
                 Z_pressed=self._extract_FBG_wavelengths(self.FBGs_map_pressed,ch,FBG)
                 Z=Z_pressed-Z_pristine
                 x, y = self.coords[:, 0], self.coords[:, 1]
-                index=np.argmax(Z)
-                x,shifts,coord_nearest=self.get_line_along_coord(x[index],axis,ch,FBG)
+                index_max=np.argmax(Z)
+                if axis_to_average_over=='Y':
+                    coordinates_to_average_over=y
+                    coordinates_to_preserve=x
+                elif axis_to_average_over=='X':
+                    coordinates_to_average_over=x
+                    coordinates_to_preserve=y
+                shifts_av=np.zeros(len(np.unique(coordinates_to_preserve)))               
                 
-                data_to_save.append([ch,FBG,x,shifts])
-            
-        np.save(self.file_name.split('.static')[0]+'.static_calib',data_to_save)
+                indexes_range=int(length_to_average_over/(np.unique(coordinates_to_average_over)[1]-np.unique(coordinates_to_average_over)[0]))
+                indexes_to_average=np.arange(int(index_max-indexes_range/2),int(index_max+indexes_range/2))
+                N_to_average=0
+                for ii in indexes_to_average:
+                    try:
+                        coordinates,shifts,coord_nearest=self.get_line_along_coord(coordinates_to_average_over[ii],axis_to_average_over,ch,FBG)
+                        N_to_average+=1
+                        shifts_av+=shifts
+                    except:
+                        continue
+                    
+                shifts_av/=N_to_average
+                p0=[shifts_av[np.argmax(abs(shifts_av))],coordinates[np.argmax(abs(shifts_av))],20]
+                popt, pcov = curve_fit(FBG_static_response_function, coordinates, shifts_av,p0=p0) 
                 
-      
+                plt.plot(coordinates,shifts_av,color=colors[FBG])
+                plt.plot(coordinates,FBG_static_response_function(coordinates,*popt),'.-',color=colors[FBG])
+                
+                popt[0]/=weight
+                dict_to_save[ch][FBG]=popt
+                
+                
+                
+                
+        
+        calib_file_name=self.file_name.split('.static')[0]+'.setup_calib'
+        with open(calib_file_name,'wb') as f:
+            pickle.dump(dict_to_save,f)
+        
+        self.S_print.emit('Calibration created  at ' + calib_file_name)
+        plt.show()
+                
+def FBG_static_response_function(x,A,x_0,w):
+    return np.exp(-(x-x_0)**2/w**2)*A
     
 
 #%%
 if __name__=='__main__':
-    path_to_file=r"D:\Ilya\2026.02.12 static\3.static"
-    p=Static_meas_processor(path_to_file, channels_to_plot=[1], FBGs_to_plot=[[1,2,3]])
+    path_to_file=r"F:\!Projects\!WIM\2026.04.15 Static measuremetns\weight=86.4 g.static"
+    p=Static_meas_processor(path_to_file, channels_to_plot=[1], FBGs_to_plot=[[1,2,3,4,5]])
     p.plot_all_3d_plots()
+    p.create_calibration_curves()
     # p.plot_along_coord(250, 'Y', 1, 1)
 
 # plot_3d(coords,temps_bed)

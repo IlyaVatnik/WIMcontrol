@@ -5,8 +5,8 @@ Created on Wed Jan 21 11:32:18 2026
 @author: Илья
 """
 
-__version__='1.7.1'
-__date__ = '2026.04.05'
+__version__='2.0.0'
+__date__ = '2026.04.15'
 
 import os
     
@@ -47,6 +47,7 @@ from processing.process_long_term_measurements import Long_term_meas_processor a
 
 
 from UIs.MainWindowUI import Ui_MainWindow
+from UIs import GaugeWidget
 
 
         
@@ -58,6 +59,8 @@ class Params_recording():
         self.plot_live_while_recording=False
         self.type_of_recording='FBG peaks'
         self.file_name='1.fbgs'
+        
+        
 
 
      
@@ -142,6 +145,7 @@ class MainWindow(ThreadedMainWindow):
         
         self.saving_dir_path='data\\'
         self.file_to_load_path=None
+        self.calibration_file_path=None
         
         
         self.ParametersFileName='Large_printer.parameters'
@@ -157,6 +161,13 @@ class MainWindow(ThreadedMainWindow):
         
         self.type_of_plotted_data=None
         self.load_parameters_from_file(self.ParametersFileName)
+
+        
+    def load_gauge_widget(self,weight_min=0,weight_max=200,x_min=0,x_max=300):
+            self.gauge_window = GaugeWidget.GaugeWindow(weight_min,weight_max,x_min,x_max)
+            self.gauge_window.show()
+            
+
 
         
   
@@ -178,6 +189,7 @@ class MainWindow(ThreadedMainWindow):
         
         
         self.ui.pushButton_choose_folder_to_save.clicked.connect(self.choose_folder_to_save)
+        self.ui.pushButton_choose_calibration_file_to_load.clicked.connect(self.choose_calibration_file_to_load)
         
 
         self.ui.pushButton_connect_it.toggled[bool].connect(self.connect_interrogator)
@@ -629,6 +641,8 @@ class MainWindow(ThreadedMainWindow):
             returnValue = msg.exec()
             if returnValue == QMessageBox.Ok:  
                 try:
+                 
+                        
                     
                     self.dynamical_measurement=Dynamical_measurement(self.it,self.printer,self.params.dynamical,
                                                                      self.saving_dir_path,
@@ -642,6 +656,21 @@ class MainWindow(ThreadedMainWindow):
                     
                     self.dynamical_measurement.S_finished.connect(lambda: self.ui.pushButton_dynamical_measurements.setChecked(False))
                     self.dynamical_measurement.S_finished.connect(self.kill_dynamical_measurement)
+                    
+                    if self.params.dynamical.calculate_weight:
+                        
+                        
+                        self.dynamical_processor=Dynamical_meas_processor(None,self.params.it.channels,self.params.it.FBGs,
+                                                                          calibration_file_path=self.calibration_file_path)
+                        
+                        self.load_gauge_widget()
+                        
+                        self.dynamical_processor.S_print_error[str].connect(self.logWarningText)
+                        self.dynamical_processor.S_print[str].connect(self.logText)
+                        
+                        self.dynamical_measurement.S_file_ready[str].connect(self.dynamical_processor.calculate_weight_from_file)
+                        
+                        self.dynamical_processor.S_weight_calculated.connect(self.gauge_window.update_value)
                     
                     self.dynamical_measurement.is_running=True
                     
@@ -664,10 +693,18 @@ class MainWindow(ThreadedMainWindow):
                     self.live_plot_stops = []
             except:
                 pass     
+            
  
     def kill_dynamical_measurement(self):
         del self.dynamical_measurement
-          
+        
+        
+    def update_weight_value(self, value):
+        try:
+            self.gauge.setValue(value)
+        except Exception as e:
+            self.logWarningText(f"Gauge update error: {e}")
+              
     def choose_folder_to_save(self):
         self.saving_dir_path = str(
             QFileDialog.getExistingDirectory(self, "Select Directory"))+'\\'
@@ -679,12 +716,21 @@ class MainWindow(ThreadedMainWindow):
             self.logWarningText('file is not chosen or previous choice is preserved')
         self.file_to_load_path=DataFilePath
         self.ui.label_file_to_load.setText(DataFilePath)
+        
+        
+        
+    def choose_calibration_file_to_load(self):
+        DataFilePath= str(QFileDialog.getOpenFileName(self, "Select Calibration File",'','*.setup_calib' )).split("\',")[0].split("('")[1]
+        if DataFilePath=='':
+            self.logWarningText('file is not chosen or previous choice is preserved')
+        self.calibration_file_path=DataFilePath
+        self.ui.label_calibration_file.setText(DataFilePath)
  
         
     def plot_from_file(self):
         try:
             file_name=os.path.basename(self.file_to_load_path)
-            if file_name.split('.')[1]=='fbgs':
+            if file_name.split('.')[-1]=='fbgs':
                 self.dynamical_processor=Dynamical_meas_processor(self.file_to_load_path,self.params.it.channels,self.params.it.FBGs)
                 self.dynamical_processor.S_print_error[str].connect(self.logWarningText)
                 self.dynamical_processor.S_print[str].connect(self.logText)
@@ -694,7 +740,7 @@ class MainWindow(ThreadedMainWindow):
                 
 
                 
-            elif file_name.split('.')[1]=='spectrum':
+            elif file_name.split('.')[-1]=='spectrum':
                 with open(self.file_to_load_path,'rb') as f:
                     waves,spectrum=pickle.load(f)
                 plt.figure()
@@ -705,7 +751,7 @@ class MainWindow(ThreadedMainWindow):
                 self.type_of_plotted_data='spectrum'
                 plt.show()
                 
-            elif file_name.split('.')[1]=='static':
+            elif file_name.split('.')[-1]=='static':
                 
                 self.static_processor=Static_processor(self.file_to_load_path,self.params.it.channels,self.params.it.FBGs)
                 self.static_processor.S_print_error[str].connect(self.logWarningText)
@@ -713,8 +759,9 @@ class MainWindow(ThreadedMainWindow):
                 self.static_processor.indicate_maxima_of_maps()
                 self.static_processor.plot_all_3d_plots()
                 self.type_of_plotted_data='static3d'
+                self.ui.pushButton_create_calibration_file.pressed.connect(self.static_processor.create_calibration_curves)
                 
-            elif file_name.split('.')[1]=='spectra':
+            elif file_name.split('.')[-1]=='spectra':
                 self.spectra_processor=Spectra_meas_processor(self.file_to_load_path,self.params.it.channels)
                 self.spectra_processor.S_print_error[str].connect(self.logWarningText)
                 self.spectra_processor.S_print[str].connect(self.logText)
@@ -722,7 +769,7 @@ class MainWindow(ThreadedMainWindow):
                 self.type_of_plotted_data='spectra'
                 
                   
-            elif file_name.split('.')[1]=='long_dynamics':
+            elif file_name.split('.')[-1]=='long_dynamics':
                 self.long_term_processor=Long_term_meas_processor(self.file_to_load_path,self.params.it.channels,self.params.it.FBGs)
                 self.long_term_processor.S_print_error[str].connect(self.logWarningText)
                 self.long_term_processor.S_print[str].connect(self.logText)

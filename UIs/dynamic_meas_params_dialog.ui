@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>610</width>
-    <height>595</height>
+    <width>609</width>
+    <height>700</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -598,6 +598,32 @@
     </property>
     <property name="alignment">
      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QGroupBox" name="groupBox_8">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>600</y>
+     <width>571</width>
+     <height>71</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>Processing options</string>
+   </property>
+   <widget class="QCheckBox" name="checkBox_calculate_weight">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>30</y>
+      <width>121</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Calculate weight</string>
     </property>
    </widget>
   </widget>

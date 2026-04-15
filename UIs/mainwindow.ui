@@ -160,7 +160,7 @@
               <property name="minimumSize">
                <size>
                 <width>0</width>
-                <height>51</height>
+                <height>61</height>
                </size>
               </property>
               <property name="title">
@@ -180,6 +180,45 @@
                </property>
               </widget>
               <widget class="QLabel" name="label_folder_to_save">
+               <property name="geometry">
+                <rect>
+                 <x>210</x>
+                 <y>20</y>
+                 <width>391</width>
+                 <height>23</height>
+                </rect>
+               </property>
+               <property name="text">
+                <string>none</string>
+               </property>
+              </widget>
+             </widget>
+            </item>
+            <item row="3" column="0" colspan="2">
+             <widget class="QGroupBox" name="groupBox_10">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>61</height>
+               </size>
+              </property>
+              <property name="title">
+               <string>Cailbration File options</string>
+              </property>
+              <widget class="QPushButton" name="pushButton_choose_calibration_file_to_load">
+               <property name="geometry">
+                <rect>
+                 <x>10</x>
+                 <y>20</y>
+                 <width>141</width>
+                 <height>23</height>
+                </rect>
+               </property>
+               <property name="text">
+                <string>Choose calibration file</string>
+               </property>
+              </widget>
+              <widget class="QLabel" name="label_calibration_file">
                <property name="geometry">
                 <rect>
                  <x>210</x>
@@ -466,7 +505,7 @@
               <x>560</x>
               <y>10</y>
               <width>201</width>
-              <height>23</height>
+              <height>31</height>
              </rect>
             </property>
             <property name="text">
@@ -554,6 +593,19 @@
                </property>
                <property name="text">
                 <string>Save single line to csv</string>
+               </property>
+              </widget>
+              <widget class="QPushButton" name="pushButton_create_calibration_file">
+               <property name="geometry">
+                <rect>
+                 <x>830</x>
+                 <y>20</y>
+                 <width>141</width>
+                 <height>31</height>
+                </rect>
+               </property>
+               <property name="text">
+                <string>Create calibration file</string>
                </property>
               </widget>
              </widget>
