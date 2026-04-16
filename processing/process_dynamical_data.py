@@ -6,8 +6,8 @@ from PyQt5.QtCore import QObject,pyqtSignal
 from AFR_interrogator.FBGRecorder import read_fbg_stream_raw_lp
 from scipy.optimize import minimize
 
-__version__='2'
-__date__ = '2026.04.15'
+__version__='2.1'
+__date__ = '2026.04.16'
 
 
 wheelset_width=85
@@ -42,14 +42,16 @@ class Dynamical_meas_processor(QObject):
             self.dict_calibration=None
       
         
-    def load_data(self):
+    def load_data(self, logging=True):
 
         
 
         self.times, self.channels, self.channel_list, self.FBGs_list,self.other_params = read_fbg_stream_raw_lp(self.file_name)
-        self.S_print.emit('In this file there are channels {} and FBGs {} in these channels'.format(self.channel_list,self.FBGs_list))
+        
         self.figs_fbgs=[]
-        self.S_print.emit('Other parameters of the record are {} '.format(self.other_params))       
+        if logging:
+            self.S_print.emit('In this file there are channels {} and FBGs {} in these channels'.format(self.channel_list,self.FBGs_list))
+            self.S_print.emit('Other parameters of the record are {} '.format(self.other_params))       
           
    
     def load_calibration_data(self):
@@ -64,13 +66,12 @@ class Dynamical_meas_processor(QObject):
         for ch in self.channels_to_plot:
             N_FBG=len(self.FBGs_to_plot[ch-1])
             if N_FBG>1:
-                    
                 fig,axes=plt.subplots(nrows=N_FBG,sharex=True)
                 self.figs_fbgs.append(fig)
                 fig.supxlabel("Time, s")
                 fig.supylabel("FBG wavelength, nm")
                 for ii,FBG in enumerate(self.FBGs_to_plot[ch-1]):
-                    axes[ii].plot(self.times - self.times[0], self.channels[ch][ii+1],color=colors[ii % len(colors)])
+                    axes[ii].plot(self.times - self.times[0], self.channels[ch][FBG],color=colors[ii % len(colors)])
                     axes[ii].set_title(f"FBG {FBG}", loc="left", fontsize=10, pad=2)
                 plt.suptitle('ch {} of {}, v_y={} mm/s'.format(ch, self.file_name.split('.')[0], self.other_params['y_velocity']))
                                         
@@ -97,41 +98,47 @@ class Dynamical_meas_processor(QObject):
             N_FBG=len(self.FBGs_to_plot[ch-1])
             for ii,FBG in enumerate(self.FBGs_to_plot[ch-1]):
                 
-                initial_wavelength=np.mean(self.channels[ch][ii+1][0:time_window_index])
-                index_max=np.argmax(abs(self.channels[ch][ii+1]-initial_wavelength))
-                maximum_wavelength=np.mean(self.channels[ch][ii+1][int(index_max-time_window/2):int(index_max+time_window/2)])
+                initial_wavelength=np.mean(self.channels[ch][FBG][0:time_window_index])
+                index_max=np.argmax(abs(self.channels[ch][FBG]-initial_wavelength))
+                maximum_wavelength=np.mean(self.channels[ch][FBG][int(index_max-time_window/2):int(index_max+time_window/2)])
                 dict_shifts[ch][FBG]=maximum_wavelength-initial_wavelength
-                print(initial_wavelength,maximum_wavelength,FBG)
+                # print(initial_wavelength,maximum_wavelength,FBG)
         return dict_shifts
                              
 
             
     def _cost_function(self,x,dict_calibration,dict_shifts):
-        weight, x_left_wheel=x
+        weight, x_left_wheel, x_right_wheel=x
         cost=0
         for ch in self.channels_to_plot:
             for ii,FBG in enumerate(self.FBGs_to_plot[ch-1]):
-                predicted_signal=weight/2*(FBG_static_response_function(x_left_wheel,*dict_calibration[ch][FBG])+FBG_static_response_function(x_left_wheel+wheelset_width,*dict_calibration[ch][FBG]))
+                
+                predicted_signal=weight/2*(FBG_static_response_function(x_left_wheel,*dict_calibration[ch][FBG])+FBG_static_response_function(x_right_wheel,*dict_calibration[ch][FBG]))
                 cost+=abs(dict_shifts[ch][FBG]-predicted_signal)
                 # print(predicted_signal,dict_shifts[ch][FBG],ch,FBG)
         return cost
  
     def calculate_weight(self):
         dict_shifts=self.get_maximum_shifts()
-        x0=[100,150]
-        result = minimize(self._cost_function,  x0,  args=(self.dict_calibration, dict_shifts),   method="BFGS")
-        weight,x_0=result.x
-        # print(weight,x_0,x_0+wheelset_width)
-        return weight,x_0
+        x0=[100,150,150+wheelset_width]
+        result = minimize(self._cost_function,  x0,  args=(self.dict_calibration, dict_shifts),method='Nelder-Mead')
+        weight,x_l,x_r=result.x
+        print(weight,x_l,x_r)
+        return weight,x_l,x_r,result.message
     
     def calculate_weight_from_file(self,file_path):
-        self.file_name=file_path
-        self.load_data()
-        weight,x_0=self.calculate_weight()
-        self.S_weight_calculated.emit(weight,x_0,x_0+wheelset_width)
-        
-        # print()
-        return weight,x_0,x_0+wheelset_width
+        try:
+            self.file_name=file_path
+            self.load_data(logging=False)
+            weight,x_l,x_r, message=self.calculate_weight()
+            self.S_weight_calculated.emit(weight,x_l,x_r)
+            self.S_print.emit('Weight={:.2f} g, x_l={:.2f} mm, x_r={:.2f} mm ;  '.format(weight,x_l,x_r)+message)
+            
+            # print()
+            return weight,x_l,x_r
+        except Exception as e:
+            self.S_print_error.emit(str(e))
+            print(e)
    
 def FBG_static_response_function(x,A,x_0,w):
     return np.exp(-(x-x_0)**2/w**2)*A
@@ -140,9 +147,9 @@ def FBG_static_response_function(x,A,x_0,w):
 #%%
 if __name__=='__main__':
     #
-    path_to_file=r"D:\Ilya\WIMcontrol\data\x=206 mm forward N=0.fbgs"
-    calibration_file_path=r"C:\Users\Ilya\Desktop\1.setup_calib"
-    p=Dynamical_meas_processor(path_to_file, [1], [[1,2,3,4,5]],calibration_file_path=calibration_file_path)
+    path_to_file=r"D:\Ilya\2026.04.16 dynamical measurements with 160 g\x=185 mm forward N=1.fbgs"
+    calibration_file_path=r"D:\Ilya\2026.04.15 static meas\weight=53 g.setup_calib"
+    p=Dynamical_meas_processor(path_to_file, [1], [[2,3,4]],calibration_file_path=calibration_file_path)
     p.load_data()
     p.plot()
     p.calculate_weight()

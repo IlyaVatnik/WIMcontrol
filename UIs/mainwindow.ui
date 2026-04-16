@@ -25,8 +25,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1043</width>
-         <height>910</height>
+         <width>1039</width>
+         <height>896</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -40,8 +40,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>1025</width>
-             <height>381</height>
+             <width>1017</width>
+             <height>342</height>
             </rect>
            </property>
            <attribute name="label">
@@ -240,8 +240,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>1025</width>
-             <height>381</height>
+             <width>1017</width>
+             <height>342</height>
             </rect>
            </property>
            <attribute name="label">
@@ -450,8 +450,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>1025</width>
-             <height>381</height>
+             <width>1017</width>
+             <height>342</height>
             </rect>
            </property>
            <attribute name="label">
@@ -492,8 +492,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>1025</width>
-             <height>381</height>
+             <width>1017</width>
+             <height>342</height>
             </rect>
            </property>
            <attribute name="label">
@@ -534,8 +534,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>1025</width>
-             <height>381</height>
+             <width>1017</width>
+             <height>342</height>
             </rect>
            </property>
            <attribute name="label">
@@ -593,19 +593,6 @@
                </property>
                <property name="text">
                 <string>Save single line to csv</string>
-               </property>
-              </widget>
-              <widget class="QPushButton" name="pushButton_create_calibration_file">
-               <property name="geometry">
-                <rect>
-                 <x>830</x>
-                 <y>20</y>
-                 <width>141</width>
-                 <height>31</height>
-                </rect>
-               </property>
-               <property name="text">
-                <string>Create calibration file</string>
                </property>
               </widget>
              </widget>
@@ -836,6 +823,45 @@
               </widget>
              </widget>
             </item>
+            <item row="2" column="0" colspan="2">
+             <widget class="QGroupBox" name="groupBox_11">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>81</height>
+               </size>
+              </property>
+              <property name="title">
+               <string>Process data</string>
+              </property>
+              <widget class="QPushButton" name="pushButton_create_calibration_file">
+               <property name="geometry">
+                <rect>
+                 <x>20</x>
+                 <y>30</y>
+                 <width>231</width>
+                 <height>28</height>
+                </rect>
+               </property>
+               <property name="text">
+                <string>Create calibration file from .static</string>
+               </property>
+              </widget>
+              <widget class="QPushButton" name="pushButton_calculate_weight">
+               <property name="geometry">
+                <rect>
+                 <x>290</x>
+                 <y>30</y>
+                 <width>231</width>
+                 <height>28</height>
+                </rect>
+               </property>
+               <property name="text">
+                <string>Calculate weight from .fbgs</string>
+               </property>
+              </widget>
+             </widget>
+            </item>
            </layout>
           </widget>
          </widget>
@@ -894,7 +920,7 @@
      <x>0</x>
      <y>0</y>
      <width>1063</width>
-     <height>21</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuTools">

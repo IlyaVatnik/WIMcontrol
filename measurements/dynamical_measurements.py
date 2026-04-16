@@ -10,11 +10,12 @@ import numpy as np
 from AFR_interrogator.FBGRecorder import record_to_file_from_queue, FrameFanout,record_spectra_to_file
 from queue import Queue
 
-__version__='2.0'
-__date__ = '2026.04.15'
+__version__='2.1'
+__date__ = '2026.04.16'
 
 
 MAX_SIZE_QUEUE=5000
+time_to_save_factor=1.8
 
 class Dynamical_measurement_params():
     def __init__(self):      
@@ -167,7 +168,7 @@ class Dynamical_measurement(QObject):
                 #     self.it.start_freq_stream()
 
     
-            time_to_save=1.5*calc_time_of_moving(abs(self.params.y_stop-self.params.y_start),self.params.y_velocity,self.printer.params.max_accel_mm_s2)
+            time_to_save=time_to_save_factor*calc_time_of_moving(abs(self.params.y_stop-self.params.y_start),self.params.y_velocity,self.printer.params.max_accel_mm_s2)
             self.S_print.emit('Time for one movement is {:.2f} s'.format(time_to_save))
            
             for x in X_array:

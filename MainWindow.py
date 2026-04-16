@@ -228,6 +228,8 @@ class MainWindow(ThreadedMainWindow):
         self.ui.pushButton_plot_single_slice_of_static.pressed.connect(self.plot_single_slice_of_static)
         self.ui.pushButton_save_single_line_to_csv.pressed.connect(self.save_single_line_to_csv)
         
+        self.ui.pushButton_calculate_weight.pressed.connect(lambda: self.dynamical_processor.calculate_weight_from_file(self.file_to_load_path))
+        
         
         self.ui.pushButton_clearLog.clicked.connect(self.clear_log)
         
@@ -726,13 +728,19 @@ class MainWindow(ThreadedMainWindow):
             self.logWarningText('file is not chosen or previous choice is preserved')
         self.calibration_file_path=DataFilePath
         self.ui.label_calibration_file.setText(DataFilePath)
+        try:
+            self.dynamical_processor.calibration_file_path=DataFilePath
+        except:
+            self.dynamical_processor=Dynamical_meas_processor(self.file_to_load_path,self.params.it.channels,self.params.it.FBGs,
+                                                              calibration_file_path=DataFilePath)
  
         
     def plot_from_file(self):
         try:
             file_name=os.path.basename(self.file_to_load_path)
             if file_name.split('.')[-1]=='fbgs':
-                self.dynamical_processor=Dynamical_meas_processor(self.file_to_load_path,self.params.it.channels,self.params.it.FBGs)
+                self.dynamical_processor=Dynamical_meas_processor(self.file_to_load_path,self.params.it.channels,self.params.it.FBGs,
+                                                                  self.calibration_file_path)
                 self.dynamical_processor.S_print_error[str].connect(self.logWarningText)
                 self.dynamical_processor.S_print[str].connect(self.logText)
                 self.dynamical_processor.load_data()
