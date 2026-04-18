@@ -5,9 +5,9 @@ import numpy as np
 from PyQt5.QtCore import QObject,pyqtSignal
 from AFR_interrogator.FBGRecorder import read_fbg_stream_raw_lp
 from scipy.optimize import minimize
-
-__version__='2.1'
-__date__ = '2026.04.16'
+import os
+__version__='2.2'
+__date__ = '2026.04.18'
 
 
 wheelset_width=85
@@ -57,8 +57,23 @@ class Dynamical_meas_processor(QObject):
     def load_calibration_data(self):
         with open(self.calibration_file_path,'rb') as f:
             self.dict_calibration=pickle.load(f)
+        self.plot_calibration_data()
+            
+    def plot_calibration_data(self):
+        plt.figure()
+        colors = plt.cm.tab10.colors
+        plt.xlabel('Position, mm')
+        plt.ylabel('Response, nm')
+        coords=np.arange(0,300)
+        for ch in self.channels_to_plot:
+            for FBG in self.FBGs_to_plot[ch-1]:
+                plt.plot(coords,FBG_static_response_function(coords,*self.dict_calibration[ch][FBG]['params']),'.-',
+                         color=colors[FBG-1],
+                         label='FBG '+str(FBG)+' w={:.2f} nm'.format(self.dict_calibration[ch][FBG]['wavelength']))
    
-   
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
 #%%
     def plot(self):
         colors = plt.cm.tab10.colors
@@ -89,15 +104,13 @@ class Dynamical_meas_processor(QObject):
                 
         plt.show()
    
-    def get_maximum_shifts(self):
+    def get_maximum_shifts_from_experiment(self):
         time_window=0.1
         time_window_index=int(time_window/(self.times[1] - self.times[0]))
         dict_shifts={}
         for ch in self.channels_to_plot:
             dict_shifts[ch]={}
-            N_FBG=len(self.FBGs_to_plot[ch-1])
             for ii,FBG in enumerate(self.FBGs_to_plot[ch-1]):
-                
                 initial_wavelength=np.mean(self.channels[ch][FBG][0:time_window_index])
                 index_max=np.argmax(abs(self.channels[ch][FBG]-initial_wavelength))
                 maximum_wavelength=np.mean(self.channels[ch][FBG][int(index_max-time_window/2):int(index_max+time_window/2)])
@@ -112,14 +125,13 @@ class Dynamical_meas_processor(QObject):
         cost=0
         for ch in self.channels_to_plot:
             for ii,FBG in enumerate(self.FBGs_to_plot[ch-1]):
-                
-                predicted_signal=weight/2*(FBG_static_response_function(x_left_wheel,*dict_calibration[ch][FBG])+FBG_static_response_function(x_right_wheel,*dict_calibration[ch][FBG]))
-                cost+=abs(dict_shifts[ch][FBG]-predicted_signal)
+                predicted_signal=weight/2*(FBG_static_response_function(x_left_wheel,*dict_calibration[ch][FBG]['params'])+FBG_static_response_function(x_right_wheel,*dict_calibration[ch][FBG]['params']))
+                cost+=(dict_shifts[ch][FBG]-predicted_signal)**2
                 # print(predicted_signal,dict_shifts[ch][FBG],ch,FBG)
         return cost
  
     def calculate_weight(self):
-        dict_shifts=self.get_maximum_shifts()
+        dict_shifts=self.get_maximum_shifts_from_experiment()
         x0=[100,150,150+wheelset_width]
         result = minimize(self._cost_function,  x0,  args=(self.dict_calibration, dict_shifts),method='Nelder-Mead')
         weight,x_l,x_r=result.x
@@ -136,6 +148,7 @@ class Dynamical_meas_processor(QObject):
             
             # print()
             return weight,x_l,x_r
+        
         except Exception as e:
             self.S_print_error.emit(str(e))
             print(e)
@@ -144,15 +157,43 @@ def FBG_static_response_function(x,A,x_0,w):
     return np.exp(-(x-x_0)**2/w**2)*A
 
 
+def process_folder(p:Dynamical_meas_processor, path_to_folder:str):
+    file_list=os.listdir(path_to_folder)
+    weights=np.zeros(len(file_list)) 
+    lengths=np.zeros(len(file_list)) 
+    x_ls=np.zeros(len(file_list)) 
+    positions=np.zeros(len(file_list)) 
+    for ii,file in enumerate(file_list): 
+        position=float(file.split('x=')[1].split(' mm')[0])
+        weight,x_l,x_r=p.calculate_weight_from_file(path_to_folder+'\\'+file)
+        print(file, weight,x_l,x_r)
+        weights[ii]=weight
+        lengths[ii]=(x_r-x_l)
+        x_ls[ii]=x_l
+        positions[ii]=position
+        
+    
+    fig,axes=plt.subplots(3,1,sharex=True)
+    axes[0].plot(positions,weights)
+    axes[0].set_ylabel('Weight, g')
+    axes[1].plot(positions,x_ls, color='red')
+    axes[1].set_ylabel('Position of the left wheel')
+    axes[2].plot(positions,lengths,color='green')
+    axes[2].set_ylabel('Wheelset width, mm')
+    axes[2].set_xlabel('Position of the headtool, mm')
+
 #%%
 if __name__=='__main__':
     #
-    path_to_file=r"D:\Ilya\2026.04.16 dynamical measurements with 160 g\x=185 mm forward N=1.fbgs"
+    # path_to_file=r"D:\Ilya\2026.04.16 dynamical measurements\160 g\x=170 mm forward N=1.fbgs"
     calibration_file_path=r"D:\Ilya\2026.04.15 static meas\weight=53 g.setup_calib"
-    p=Dynamical_meas_processor(path_to_file, [1], [[2,3,4]],calibration_file_path=calibration_file_path)
-    p.load_data()
-    p.plot()
-    p.calculate_weight()
+    p=Dynamical_meas_processor(None, [1], [[1,2,3,4,5]],calibration_file_path=calibration_file_path)
+    # p.load_data()
+    # p.plot()
+    # p.calculate_weight()
+    path_to_folder=r'D:\Ilya\WIMcontrol\data'
+    process_folder(p, path_to_folder)
+    
 
 
   

@@ -5,8 +5,8 @@ Created on Wed Jan 21 11:32:18 2026
 @author: Илья
 """
 
-__version__='2.0.0'
-__date__ = '2026.04.15'
+__version__='2.0.1'
+__date__ = '2026.04.18'
 
 import os
     
@@ -39,7 +39,7 @@ from processing.process_static_data import Static_meas_processor as Static_proce
 
 from measurements.dynamical_measurements import Dynamical_measurement as Dynamical_measurement
 from measurements.dynamical_measurements import Dynamical_measurement_params as Dynamical_measurement_params
-from processing.process_dynamical_data import Dynamical_meas_processor as Dynamical_meas_processor
+from processing.process_dynamical_data import Dynamical_meas_processor as Dynamical_meas_processor,process_folder
 
 from measurements.long_term_measurements import Long_term_measurement as Long_term_measurement
 from measurements.long_term_measurements import Long_term_measurement_params as Long_term_measurement_params
@@ -143,7 +143,7 @@ class MainWindow(ThreadedMainWindow):
         self.init_menu_bar()
         self.init_interface()
         
-        self.saving_dir_path='data\\'
+        self.operation_dir_path='data\\'
         self.file_to_load_path=None
         self.calibration_file_path=None
         
@@ -161,7 +161,11 @@ class MainWindow(ThreadedMainWindow):
         
         self.type_of_plotted_data=None
         self.load_parameters_from_file(self.ParametersFileName)
-
+        
+        self.dynamical_processor=Dynamical_meas_processor(None,self.params.it.channels,self.params.it.FBGs,
+                                                          calibration_file_path=self.calibration_file_path)
+        self.dynamical_processor.S_print_error[str].connect(self.logWarningText)
+        self.dynamical_processor.S_print[str].connect(self.logText)
         
     def load_gauge_widget(self,weight_min=0,weight_max=400,x_min=0,x_max=300):
             self.gauge_window = GaugeWidget.GaugeWindow(weight_min,weight_max,x_min,x_max)
@@ -188,7 +192,7 @@ class MainWindow(ThreadedMainWindow):
         
         
         
-        self.ui.pushButton_choose_folder_to_save.clicked.connect(self.choose_folder_to_save)
+        self.ui.pushButton_choose_operation_folder.clicked.connect(self.choose_operation_folder)
         self.ui.pushButton_choose_calibration_file_to_load.clicked.connect(self.choose_calibration_file_to_load)
         
 
@@ -229,6 +233,7 @@ class MainWindow(ThreadedMainWindow):
         self.ui.pushButton_save_single_line_to_csv.pressed.connect(self.save_single_line_to_csv)
         
         self.ui.pushButton_calculate_weight.pressed.connect(lambda: self.dynamical_processor.calculate_weight_from_file(self.file_to_load_path))
+        self.ui.pushButton_calculate_weights_in_folder.pressed.connect(lambda: process_folder(self.dynamical_processor, self.operation_dir_path))
         
         
         self.ui.pushButton_clearLog.clicked.connect(self.clear_log)
@@ -313,6 +318,8 @@ class MainWindow(ThreadedMainWindow):
             if self.it!=None:
                 set_parameters(self.it.params,params)
                 self.it.set_gains()
+            self.dynamical_processor.channels_to_plot=self.params.it.channels
+            self.dynamical_processor.FBGs_to_plot=self.params.it.FBGs
                    
     def set_printer_parameters(self):
         '''
@@ -427,7 +434,7 @@ class MainWindow(ThreadedMainWindow):
             line = plt.gca().get_lines()[0]
             waves = line.get_xdata()
             signal = line.get_ydata()
-            with open(self.saving_dir_path+'\\'+ self.ui.lineEdit_file_name_to_save_spectrum.text()+'.spectrum', "wb") as f:
+            with open( self.operation_dir_path+'\\'+ self.ui.lineEdit_file_name_to_save_spectrum.text()+'.spectrum', "wb") as f:
                 pickle.dump([waves,signal], f)
             self.logText('\nSpectrum saved\n')     
         except Exception as e:
@@ -494,7 +501,7 @@ class MainWindow(ThreadedMainWindow):
                 
                 try:
                     self.it.start_freq_stream(self.params.record.rep_rate)
-                    stats = record_to_file(self.it, self.saving_dir_path+self.params.record.file_name+".fbgs", duration_sec=self.params.record.recording_duration,
+                    stats = record_to_file(self.it, self.operation_dir_path+self.params.record.file_name+".fbgs", duration_sec=self.params.record.recording_duration,
                                            channels=self.params.it.channels,FBGs=self.params.it.FBGs,write_every_n=self.params.record.write_every_nth)
                     self.logText("Recording finished: {}".format(stats))
                     self.it.stop_freq_stream()
@@ -512,7 +519,7 @@ class MainWindow(ThreadedMainWindow):
                         channels=self.params.it.channels,
                         FBGs=self.params.it.FBGs,
                         write_every_n=self.params.record.write_every_nth,
-                        filepath=self.saving_dir_path+self.params.record.file_name+".fbgs",
+                        filepath= self.operation_dir_path+self.params.record.file_name+".fbgs",
                         duration_sec=self.params.record.recording_duration,
                         plot_channels=self.params.it.channels,
                         plot_FBGs=np.array(self.params.it.FBGs)-1,
@@ -530,7 +537,7 @@ class MainWindow(ThreadedMainWindow):
 
             record_spectra_to_file(self.it,
                                    write_every_n=self.params.record.write_every_nth,
-                                   filepath=self.saving_dir_path+self.params.record.file_name+".spectra",
+                                   filepath= self.operation_dir_path+self.params.record.file_name+".spectra",
                                    duration_sec=self.params.record.recording_duration,
                                    channels=self.params.it.channels
                                    )
@@ -540,7 +547,7 @@ class MainWindow(ThreadedMainWindow):
     def long_term_measurements(self,pressed):
         if pressed:
             self.long_term_measurement=Long_term_measurement(self.it, self.params.long_term,
-                                                             self.saving_dir_path+str(self.params.long_term.file_name)+".long_dynamics")
+                                                             self.operation_dir_path+str(self.params.long_term.file_name)+".long_dynamics")
             self.add_thread([self.long_term_measurement])
             self.force_long_term_process.connect(self.long_term_measurement.run)
             self.logText('Start long-term measurement')
@@ -568,7 +575,7 @@ class MainWindow(ThreadedMainWindow):
                 try:
                     
                     self.static_measurement=Static_measurement(self.it,self.printer,self.params.static,
-                                                               self.saving_dir_path+str(self.params.static.file_name_to_save_static_meas))
+                                                               self.operation_dir_path+str(self.params.static.file_name_to_save_static_meas))
                     self.add_thread([self.static_measurement])
                     
                     self.static_measurement.S_print[str].connect(self.logText)
@@ -648,7 +655,7 @@ class MainWindow(ThreadedMainWindow):
                         
                     
                     self.dynamical_measurement=Dynamical_measurement(self.it,self.printer,self.params.dynamical,
-                                                                     self.saving_dir_path,
+                                                                     self.operation_dir_path,
                                                                      self.params.it.channels,
                                                                      self.params.it.FBGs)
                     self.add_thread([self.dynamical_measurement])
@@ -662,17 +669,10 @@ class MainWindow(ThreadedMainWindow):
                     
                     if self.params.dynamical.calculate_weight:
                         
-                        
-                        self.dynamical_processor=Dynamical_meas_processor(None,self.params.it.channels,self.params.it.FBGs,
-                                                                          calibration_file_path=self.calibration_file_path)
-                        
+
                         self.load_gauge_widget()
                         
-                        self.dynamical_processor.S_print_error[str].connect(self.logWarningText)
-                        self.dynamical_processor.S_print[str].connect(self.logText)
-                        
                         self.dynamical_measurement.S_file_ready[str].connect(self.dynamical_processor.calculate_weight_from_file)
-                        
                         self.dynamical_processor.S_weight_calculated.connect(self.gauge_window.update_value)
                     
                     self.dynamical_measurement.is_running=True
@@ -708,10 +708,10 @@ class MainWindow(ThreadedMainWindow):
         except Exception as e:
             self.logWarningText(f"Gauge update error: {e}")
               
-    def choose_folder_to_save(self):
-        self.saving_dir_path = str(
+    def choose_operation_folder(self):
+        self.operation_dir_path = str(
             QFileDialog.getExistingDirectory(self, "Select Directory"))+'\\'
-        self.ui.label_folder_to_save.setText(self.saving_dir_path+'\\')
+        self.ui.label_operation_folder.setText(self.operation_dir_path+'\\')
        
     def choose_file_to_load(self):
         DataFilePath= str(QFileDialog.getOpenFileName(self, "Select Data File",'','*.fbgs *.spectrum *.static *.spectra *.long_dynamics' )).split("\',")[0].split("('")[1]
@@ -728,21 +728,16 @@ class MainWindow(ThreadedMainWindow):
             self.logWarningText('file is not chosen or previous choice is preserved')
         self.calibration_file_path=DataFilePath
         self.ui.label_calibration_file.setText(DataFilePath)
-        try:
-            self.dynamical_processor.calibration_file_path=DataFilePath
-        except:
-            self.dynamical_processor=Dynamical_meas_processor(self.file_to_load_path,self.params.it.channels,self.params.it.FBGs,
-                                                              calibration_file_path=DataFilePath)
+        self.dynamical_processor.calibration_file_path=DataFilePath
+        self.dynamical_processor.load_calibration_data()
+
  
         
     def plot_from_file(self):
         try:
             file_name=os.path.basename(self.file_to_load_path)
             if file_name.split('.')[-1]=='fbgs':
-                self.dynamical_processor=Dynamical_meas_processor(self.file_to_load_path,self.params.it.channels,self.params.it.FBGs,
-                                                                  self.calibration_file_path)
-                self.dynamical_processor.S_print_error[str].connect(self.logWarningText)
-                self.dynamical_processor.S_print[str].connect(self.logText)
+                self.dynamical_processor.file_name=self.file_to_load_path
                 self.dynamical_processor.load_data()
                 self.dynamical_processor.plot()
                 self.type_of_plotted_data='fbgs'

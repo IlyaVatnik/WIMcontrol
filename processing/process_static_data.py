@@ -7,8 +7,8 @@ from scipy.interpolate import griddata
 from scipy.optimize import curve_fit
 from PyQt5.QtCore import QObject,pyqtSignal
 
-__version__='2'
-__date__ = '2026.04.15'
+__version__='2.1'
+__date__ = '2026.04.18'
 
 class Static_meas_processor(QObject):
     S_print=pyqtSignal(str) # signal used to print into main text browser
@@ -144,7 +144,7 @@ class Static_meas_processor(QObject):
             for FBG in self.FBGs_to_plot[ch-1]:
                 x0,y0,z0=self.get_coords_of_maximum(ch, FBG)
                 self.S_print.emit('Maximum shift in ch {}, FBG {} is {:.3f} nm at X={:.1f} mm, Y={:.1f} mm'.format(ch, FBG,z0,x0,y0))
-#%%
+
     
     def get_coords_of_maximum(self,ch,FBG_number):
         Z_pristine=self._extract_FBG_wavelengths(self.FBGs_map_pristine,ch,FBG_number)
@@ -278,11 +278,13 @@ class Static_meas_processor(QObject):
                     p0=[shifts_av[np.argmax(abs(shifts_av))],coordinates[np.argmax(abs(shifts_av))],20]
                     popt, pcov = curve_fit(FBG_static_response_function, coordinates, shifts_av,p0=p0) 
                     
-                    plt.plot(coordinates,shifts_av,color=colors[FBG])
-                    plt.plot(coordinates,FBG_static_response_function(coordinates,*popt),'.-',color=colors[FBG])
+                    plt.plot(coordinates,shifts_av,color=colors[FBG-1],label='FBG '+str(FBG)+ ' w={:.2f} nm'.format((Z_pristine[index_max])))
+                    plt.plot(coordinates,FBG_static_response_function(coordinates,*popt),'.-',color=colors[FBG-1])
                     
                     popt[0]/=weight
-                    dict_to_save[ch][FBG]=popt
+                    dict_to_save[ch][FBG]={}
+                    dict_to_save[ch][FBG]['params']=popt
+                    dict_to_save[ch][FBG]['wavelength']=Z_pristine[index_max]
                     
                     
                     
@@ -293,6 +295,7 @@ class Static_meas_processor(QObject):
                 pickle.dump(dict_to_save,f)
 
             self.S_print.emit('Calibration created  at ' + calib_file_name)
+            plt.legend()
             plt.show()
             
         except Exception as e:
