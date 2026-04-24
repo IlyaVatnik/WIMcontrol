@@ -32,7 +32,7 @@ class Static_meas_processor(QObject):
         
         self.load_data()
         
-    def load_data(self):
+    def load_data_for_two_mesaures_exp(self):
 
         
         with open(self.file_name, 'r') as file:
@@ -86,7 +86,8 @@ class Static_meas_processor(QObject):
             N_FBGs_list=None
             while N_FBGs_list==None:
                 line = file.readline().strip()   # читаем только одну строку 
-                data = ast.literal_eval(line)
+                line_fixed = line.replace("nan", "None")
+                data = ast.literal_eval(line_fixed)
                 try: 
                     N_FBGs_list=[len(x) for x in data[4]]
                 except TypeError:
@@ -102,24 +103,34 @@ class Static_meas_processor(QObject):
                 line = line.strip()
                 
                 try:
-                    data = ast.literal_eval(line)
+                    line_fixed = line.replace("nan", "None")
+                    data = ast.literal_eval(line_fixed)
+              
+
+                    # data = ast.literal_eval(line)
+  
+
                     if [len(x) for x in data[4]]==N_FBGs_list: ## добавляет только те строки, где количество решеток равно начальному.
-                        if [len(x) for x in data[5]]==N_FBGs_list:
-                            self.FBGs_map_pristine.append(data[4])
-                            self.FBGs_map_pressed.append(data[5])
-                            coords.append([data[0],data[1]])
-                            temps_bed.append(data[2])
-                            temps_chamber.append(data[3])
+                        if not any(None in sublist for sublist in data[4]):
+                            if [len(x) for x in data[5]]==N_FBGs_list:
+                                if not any(None in sublist for sublist in data[5]):
+                            # if ~any(data[5]==None):
+                                    self.FBGs_map_pristine.append(data[4])
+                                    self.FBGs_map_pressed.append(data[5])
+                                    coords.append([data[0],data[1]])
+                                    temps_bed.append(data[2])
+                                    temps_chamber.append(data[3])
                     # Преобразование строки в список
-                       
-        
-                    # Извлечение переменных
+                except (ValueError, SyntaxError) as e:       
+                    print(f"Ошибка при обработке строки: {line}. Ошибка: {e}")
                 except TypeError:
                     pass
+                # Извлечение переменных
+
 
         
-                except (ValueError, SyntaxError) as e:
-                    print(f"Ошибка при обработке строки: {line}. Ошибка: {e}")
+                
+                    # print(f"Ошибка при обработке строки: {line}. Ошибка: {e}")
         self.coords=np.array(coords)
         
         self.temps_bed=np.array(temps_bed)  
@@ -241,15 +252,18 @@ class Static_meas_processor(QObject):
             colors = plt.cm.tab10.colors
             weight=float(self.file_name.split('weight=')[1].split(' g')[0])
             length_to_average_over=25 #mm
-            data_to_save=[]
-            
-            fig1=plt.figure()
-            plt.xlabel('Position, mm')
-            plt.ylabel('Response, nm')
             dict_to_save={}
+
             for ch in self.channels_to_plot:
+                            
+                fig1=plt.figure()
+                plt.title(f'Channel {ch}')
+                plt.xlabel('Position, mm')
+                plt.ylabel('Response, nm')
                 dict_to_save[ch]={}
+             
                 for FBG in self.FBGs_to_plot[ch-1]:
+                    # print(FBG)
                     Z_pristine=self._extract_FBG_wavelengths(self.FBGs_map_pristine,ch,FBG)
                     Z_pressed=self._extract_FBG_wavelengths(self.FBGs_map_pressed,ch,FBG)
                     Z=Z_pressed-Z_pristine
@@ -273,20 +287,26 @@ class Static_meas_processor(QObject):
                             shifts_av+=shifts
                         except:
                             continue
-                        
+                    
                     shifts_av/=N_to_average
                     p0=[shifts_av[np.argmax(abs(shifts_av))],coordinates[np.argmax(abs(shifts_av))],20]
-                    popt, pcov = curve_fit(FBG_static_response_function, coordinates, shifts_av,p0=p0) 
+                    try:
+                        popt, pcov = curve_fit(FBG_static_response_function, coordinates, shifts_av,p0=p0) 
+                    except Exception as e:
+                        print(e)
+                        self.S_print_error.emit(f'error while fitting {FBG} in {ch} : '+str(e))
+                        popt=[0.000,0,100]
                     
-                    plt.plot(coordinates,shifts_av,color=colors[FBG-1],label='FBG '+str(FBG)+ ' w={:.2f} nm'.format((Z_pristine[index_max])))
-                    plt.plot(coordinates,FBG_static_response_function(coordinates,*popt),'.-',color=colors[FBG-1])
+                    plt.plot(coordinates,shifts_av,'o',color=colors[FBG-1],label='FBG '+str(FBG)+ ' w={:.2f} nm'.format((Z_pristine[index_max])))
+                    plt.plot(coordinates,FBG_static_response_function(coordinates,*popt),'-',color=colors[FBG-1])
                     
                     popt[0]/=weight
                     dict_to_save[ch][FBG]={}
                     dict_to_save[ch][FBG]['params']=popt
                     dict_to_save[ch][FBG]['wavelength']=Z_pristine[index_max]
                     
-                    
+                    plt.legend()
+                    plt.show() 
                     
                     
             
@@ -295,11 +315,10 @@ class Static_meas_processor(QObject):
                 pickle.dump(dict_to_save,f)
 
             self.S_print.emit('Calibration created  at ' + calib_file_name)
-            plt.legend()
-            plt.show()
+      
             
         except Exception as e:
-            # print(e)
+            print(e)
             self.S_print_error.emit(str(e))
         
 def FBG_static_response_function(x,A,x_0,w):
@@ -308,9 +327,9 @@ def FBG_static_response_function(x,A,x_0,w):
 
 #%%
 if __name__=='__main__':
-    path_to_file=r"D:\Ilya\2026.04.15 static meas\weight=86.4 g.static"
-    p=Static_meas_processor(path_to_file, channels_to_plot=[1], FBGs_to_plot=[[1,2,3,4,5]])
-    p.plot_all_3d_plots()
+    path_to_file=r"C:\Users\Admin\Desktop\weight=160 g 24.04.26.static"
+    p=Static_meas_processor(path_to_file, channels_to_plot=[1,2], FBGs_to_plot=[[1,2,3,4,5],[1,2,3,4,5]])
+    # p.plot_all_3d_plots()
     p.create_calibration_curves()
     # p.plot_along_coord(250, 'Y', 1, 1)
 

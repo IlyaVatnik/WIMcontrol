@@ -60,20 +60,22 @@ class Dynamical_meas_processor(QObject):
         self.plot_calibration_data()
             
     def plot_calibration_data(self):
-        plt.figure()
-        colors = plt.cm.tab10.colors
-        plt.xlabel('Position, mm')
-        plt.ylabel('Response, nm')
-        coords=np.arange(0,300)
         for ch in self.channels_to_plot:
+            plt.figure()
+            colors = plt.cm.tab10.colors
+            plt.xlabel('Position, mm')
+            plt.ylabel('Response, nm/g')
+            coords=np.arange(-300,300)
+    
             for FBG in self.FBGs_to_plot[ch-1]:
-                plt.plot(coords,FBG_static_response_function(coords,*self.dict_calibration[ch][FBG]['params']),'.-',
+                plt.plot(coords,FBG_static_response_function(coords,*self.dict_calibration[ch][FBG]['params']),
                          color=colors[FBG-1],
                          label='FBG '+str(FBG)+' w={:.2f} nm'.format(self.dict_calibration[ch][FBG]['wavelength']))
    
-        plt.legend()
-        plt.tight_layout()
-        plt.show()
+            plt.legend()
+            plt.title(f'Channel {ch}')
+            plt.tight_layout()
+            plt.show()
 #%%
     def plot(self):
         colors = plt.cm.tab10.colors

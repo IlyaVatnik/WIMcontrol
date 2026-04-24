@@ -148,7 +148,7 @@ class MainWindow(ThreadedMainWindow):
         self.calibration_file_path=None
         
         
-        self.ParametersFileName='Large_printer.parameters'
+        self.ParametersFileName='Small_printer.parameters'
         self.setWindowTitle("WIM experiment control V."+version+', released '+date)
         
         # self.it
