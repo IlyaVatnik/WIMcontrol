@@ -152,7 +152,7 @@ class Dynamical_measurement(QObject):
             ii=0
             N_steps=len(X_array)
 
-            time_tic_1=time.time()
+
             # Очереди для self.fanout
 
             self.fan = FrameFanout(self.it, idle_sleep=0.0002)
@@ -174,13 +174,7 @@ class Dynamical_measurement(QObject):
             for x in X_array:
 
                     
-                    if log:
-                        ii+=1
-                        time_tic_2=time.time()
-                        time_remaining=(N_steps-ii)*(time_tic_2-time_tic_1)
-                        self.S_print.emit('Scanning at X={} , step {} of {}, time remaining={:.0f} min {:.1f} s'.format(x,ii,N_steps,time_remaining//60,np.mod(time_remaining,60)))
-                        time_tic_1=time_tic_2
-                        
+                    time_tic_1=time.time()
                     
                     for jj in range(self.params.N_repetitions_at_each_x):
                         
@@ -249,7 +243,13 @@ class Dynamical_measurement(QObject):
                         
                     
                         
-                    
+                    if log:
+                        ii+=1
+                        time_tic_2=time.time()
+                        time_remaining=(N_steps-ii+1)*(time_tic_2-time_tic_1)
+                        self.S_print.emit('Scanning at X={} , step {} of {}, time remaining={:.0f} min {:.1f} s'.format(x,ii,N_steps,time_remaining//60,np.mod(time_remaining,60)))
+                        time_tic_1=time_tic_2
+                        
                     
                     if not self.is_running:
                         self.interrupted('Scanning interrupted')
@@ -264,11 +264,12 @@ class Dynamical_measurement(QObject):
     def interrupted(self,message,error=False):
         self.it.stop_freq_stream()
         self.fan.stop(timeout=1.0)
-        self.printer.move_z(z=self.z_safe,wait=False)
         if error:
             self.S_print_error.emit(message)
         else:
             self.S_print.emit(message)
+        self.printer.move_z(z=self.z_safe,wait=False)
+
         
 def calc_time_of_moving(length, speed,acc):
     t_acc=speed/acc

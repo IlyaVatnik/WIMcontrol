@@ -92,14 +92,14 @@ class Static_measurement(QObject):
                     time_tic_1=time.time()
                     self.printer.safe_y_pass(x=x, y_start=y, y_end=y, z_safe=self.z_safe, z_contact=self.z_safe)
             
-                    time.sleep(0.1)
+
             
                     FBGs_pristine=self.it.get_averaged_single_FBG_measurement()
 
 
                     
                     self.printer.move_absolute(x=x, y=y, z=self.z_contact, speed_mm_s=velocity_mm_s)
-                    time.sleep(0.1)
+
             
                     FBGs_pressured=self.it.get_averaged_single_FBG_measurement()
                     
@@ -123,7 +123,7 @@ class Static_measurement(QObject):
                     if log_time:
                         ii+=1
                         time_tic_2=time.time()
-                        time_remaining=(N_steps-ii-1)*(time_tic_2-time_tic_1)
+                        time_remaining=(N_steps-ii+1)*(time_tic_2-time_tic_1)
                         self.S_print.emit('Scanning at X={} Y={}, step {} of {}, time elapsed for step {:.1f} s, time remaining={:.0f} min {:.1f} s'.format(x,y,ii,N_steps,(time_tic_2-time_tic_1),time_remaining//60,np.mod(time_remaining,60)))
 
 

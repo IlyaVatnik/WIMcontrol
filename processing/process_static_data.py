@@ -251,7 +251,7 @@ class Static_meas_processor(QObject):
         try:
             colors = plt.cm.tab10.colors
             weight=float(self.file_name.split('weight=')[1].split(' g')[0])
-            length_to_average_over=25 #mm
+            length_to_average_over=5 #mm
             dict_to_save={}
 
             for ch in self.channels_to_plot:
@@ -268,42 +268,48 @@ class Static_meas_processor(QObject):
                     Z_pressed=self._extract_FBG_wavelengths(self.FBGs_map_pressed,ch,FBG)
                     Z=Z_pressed-Z_pristine
                     x, y = self.coords[:, 0], self.coords[:, 1]
-                    index_max=np.argmax(Z)
+                    index_max=np.argmax(abs(Z))
+                    print([x[index_max],y[index_max]])
                     if axis_to_average_over=='Y':
                         coordinates_to_average_over=y
                         coordinates_to_preserve=x
                     elif axis_to_average_over=='X':
                         coordinates_to_average_over=x
                         coordinates_to_preserve=y
-                    shifts_av=np.zeros(len(np.unique(coordinates_to_preserve)))               
-                    
-                    indexes_range=int(length_to_average_over/(np.unique(coordinates_to_average_over)[1]-np.unique(coordinates_to_average_over)[0]))
-                    indexes_to_average=np.arange(int(index_max-indexes_range/2),int(index_max+indexes_range/2))
+                    coordinates_to_interpolate=np.unique(coordinates_to_preserve)
+                    shifts_av=np.zeros(len(coordinates_to_interpolate))   
+                
+                    indexes_range=int(length_to_average_over/coordinates_to_interpolate[1]-coordinates_to_interpolate[0])
+                    # indexes_to_average=np.arange(int(index_max-indexes_range/2),int(index_max+indexes_range/2))
+                    indexes_to_average=[index_max]
                     N_to_average=0
                     for ii in indexes_to_average:
                         try:
                             coordinates,shifts,coord_nearest=self.get_line_along_coord(coordinates_to_average_over[ii],axis_to_average_over,ch,FBG)
+                            shifts_int=np.interp(coordinates_to_interpolate, coordinates, shifts)
                             N_to_average+=1
-                            shifts_av+=shifts
+                            shifts_av+=shifts_int
                         except:
                             continue
                     
                     shifts_av/=N_to_average
-                    p0=[shifts_av[np.argmax(abs(shifts_av))],coordinates[np.argmax(abs(shifts_av))],20]
+                    p0=[shifts_av[np.argmax(abs(shifts_av))],coordinates_to_interpolate[np.argmax(abs(shifts_av))],20]
                     try:
-                        popt, pcov = curve_fit(FBG_static_response_function, coordinates, shifts_av,p0=p0) 
+                        popt, pcov = curve_fit(FBG_static_response_function, coordinates_to_interpolate, shifts_av,p0=p0) 
                     except Exception as e:
                         print(e)
                         self.S_print_error.emit(f'error while fitting {FBG} in {ch} : '+str(e))
                         popt=[0.000,0,100]
                     
-                    plt.plot(coordinates,shifts_av,'o',color=colors[FBG-1],label='FBG '+str(FBG)+ ' w={:.2f} nm'.format((Z_pristine[index_max])))
-                    plt.plot(coordinates,FBG_static_response_function(coordinates,*popt),'-',color=colors[FBG-1])
+                    plt.plot(coordinates_to_interpolate,shifts_av,'o',color=colors[FBG-1],label='FBG '+str(FBG)+ ' w={:.2f} nm'.format((Z_pristine[index_max])))
+                    plt.plot(coordinates_to_interpolate,FBG_static_response_function(coordinates_to_interpolate,*popt),'-',color=colors[FBG-1])
                     
                     popt[0]/=weight
                     dict_to_save[ch][FBG]={}
                     dict_to_save[ch][FBG]['params']=popt
                     dict_to_save[ch][FBG]['wavelength']=Z_pristine[index_max]
+                    dict_to_save[ch][FBG]['coord_max']=[x[index_max],y[index_max]]
+
                     
                     plt.legend()
                     plt.show() 
@@ -327,7 +333,7 @@ def FBG_static_response_function(x,A,x_0,w):
 
 #%%
 if __name__=='__main__':
-    path_to_file=r"C:\Users\Admin\Desktop\weight=160 g 24.04.26.static"
+    path_to_file=r"D:\Ilya\WIMcontrol\data\weight=160 g try 4.static"
     p=Static_meas_processor(path_to_file, channels_to_plot=[1,2], FBGs_to_plot=[[1,2,3,4,5],[1,2,3,4,5]])
     # p.plot_all_3d_plots()
     p.create_calibration_curves()

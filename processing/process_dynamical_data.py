@@ -6,8 +6,8 @@ from PyQt5.QtCore import QObject,pyqtSignal
 from AFR_interrogator.FBGRecorder import read_fbg_stream_raw_lp
 from scipy.optimize import minimize
 import os
-__version__='2.2'
-__date__ = '2026.04.18'
+__version__='2.3'
+__date__ = '2026.04.26'
 
 
 wheelset_width=85
@@ -134,8 +134,10 @@ class Dynamical_meas_processor(QObject):
  
     def calculate_weight(self):
         dict_shifts=self.get_maximum_shifts_from_experiment()
-        x0=[100,150,150+wheelset_width]
-        result = minimize(self._cost_function,  x0,  args=(self.dict_calibration, dict_shifts),method='Nelder-Mead')
+        x_0=0
+        x0=[200,x_0,x_0+wheelset_width]
+        bounds=[(0,1000),(-110,110),(-110+wheelset_width,100+wheelset_width)]
+        result = minimize(self._cost_function,  x0,  bounds=bounds, args=(self.dict_calibration, dict_shifts),method='Nelder-Mead')
         weight,x_l,x_r=result.x
         print(weight,x_l,x_r)
         return weight,x_l,x_r,result.message
@@ -165,6 +167,7 @@ def process_folder(p:Dynamical_meas_processor, path_to_folder:str):
     lengths=np.zeros(len(file_list)) 
     x_ls=np.zeros(len(file_list)) 
     positions=np.zeros(len(file_list)) 
+    positions_of_the_wheelset_center=np.zeros(len(file_list))
     for ii,file in enumerate(file_list): 
         position=float(file.split('x=')[1].split(' mm')[0])
         weight,x_l,x_r=p.calculate_weight_from_file(path_to_folder+'\\'+file)
@@ -173,27 +176,33 @@ def process_folder(p:Dynamical_meas_processor, path_to_folder:str):
         lengths[ii]=(x_r-x_l)
         x_ls[ii]=x_l
         positions[ii]=position
+        positions_of_the_wheelset_center[ii]=(x_r+x_l)/2
         
     
-    fig,axes=plt.subplots(3,1,sharex=True)
-    axes[0].plot(positions,weights)
+    fig,axes=plt.subplots(4,1,sharex=True)
+    axes[0].plot(positions,weights,'o')
     axes[0].set_ylabel('Weight, g')
-    axes[1].plot(positions,x_ls, color='red')
+    axes[1].plot(positions,x_ls, 'o',color='red')
     axes[1].set_ylabel('Position of the left wheel')
-    axes[2].plot(positions,lengths,color='green')
+    axes[2].plot(positions,lengths,'o',color='green')
     axes[2].set_ylabel('Wheelset width, mm')
-    axes[2].set_xlabel('Position of the headtool, mm')
+    axes[3].plot(positions,positions_of_the_wheelset_center,'o',color='black')
+    axes[3].set_ylabel('Wheelset center, mm')
+    
+    
+    axes[3].set_xlabel('Position of the headtool, mm')
+    
 
 #%%
 if __name__=='__main__':
     #
     # path_to_file=r"D:\Ilya\2026.04.16 dynamical measurements\160 g\x=170 mm forward N=1.fbgs"
-    calibration_file_path=r"D:\Ilya\2026.04.15 static meas\weight=53 g.setup_calib"
-    p=Dynamical_meas_processor(None, [1], [[1,2,3,4,5]],calibration_file_path=calibration_file_path)
+    calibration_file_path=r"D:\Ilya\2026.04.26\static\weight=160 g try 4.setup_calib"
+    p=Dynamical_meas_processor(None, [1,2], [[1,2,3,4,5],[1,2,3,4,5]],calibration_file_path=calibration_file_path)
     # p.load_data()
     # p.plot()
     # p.calculate_weight()
-    path_to_folder=r'D:\Ilya\WIMcontrol\data'
+    path_to_folder=r'D:\Ilya\2026.04.26\dynamical'
     process_folder(p, path_to_folder)
     
 

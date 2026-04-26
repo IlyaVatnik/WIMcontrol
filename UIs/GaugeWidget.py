@@ -18,9 +18,9 @@ __date__ = '2026.04.15'
 class GaugeWindow(QWidget):
     def __init__(self,
                  weight_min=0,
-                 weight_max=200,
-                 x_min=100,
-                 x_max=200):
+                 weight_max=300,
+                 x_min=-150,
+                 x_max=150):
         super().__init__()
 
         self.setWindowTitle("Weight")
