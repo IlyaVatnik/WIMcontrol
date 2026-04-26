@@ -87,25 +87,21 @@ class Static_measurement(QObject):
             ii=0
             N_steps=len(X_array)*len(Y_array)
        
-            time_tic_1=time.time()
             for x in X_array:
                 for y in Y_array:
-                    if log_time:
-                        ii+=1
-                        time_tic_2=time.time()
-                        time_remaining=(N_steps-ii)*(time_tic_2-time_tic_1)
-                        self.S_print.emit('Scanning at X={} Y={}, step {} of {}, time elapsed for step {:.1f} s, time remaining={:.0f} min {:.1f} s'.format(x,y,ii,N_steps,(time_tic_2-time_tic_1),time_remaining//60,np.mod(time_remaining,60)))
-
-                    self.printer.safe_y_pass(x=x, y_start=y, y_end=y, z_safe=self.z_safe, z_contact=self.z_safe)
+                    time_tic_1=time.time()
+                    self.printer.safe_y_pass(x=x, y_start=y, y_end=y, z_safe=self.z_safe, z_contact=self.z_safe,
+                                             wait=True)
             
-                    time.sleep(0.1)
+                    # time.sleep(1)
             
                     FBGs_pristine=self.it.get_averaged_single_FBG_measurement()
 
 
                     
-                    self.printer.move_absolute(x=x, y=y, z=self.z_contact, speed_mm_s=velocity_mm_s)
-                    time.sleep(0.1)
+                    self.printer.move_absolute(x=x, y=y, z=self.z_contact, speed_mm_s=velocity_mm_s,
+                                               wait=True)
+                    # time.sleep(1)
             
                     FBGs_pressured=self.it.get_averaged_single_FBG_measurement()
                     
@@ -125,6 +121,13 @@ class Static_measurement(QObject):
                     temp_chamber=self.printer.get_chamber_temperature()[0]
                     
                     self.printer.move_absolute(x=x, y=y, z=self.z_safe, speed_mm_s=velocity_mm_s)
+                    
+                    if log_time:
+                        ii+=1
+                        time_tic_2=time.time()
+                        time_remaining=(N_steps-ii-1)*(time_tic_2-time_tic_1)
+                        self.S_print.emit('Scanning at X={} Y={}, step {} of {}, time elapsed for step {:.1f} s, time remaining={:.0f} min {:.1f} s'.format(x,y,ii,N_steps,(time_tic_2-time_tic_1),time_remaining//60,np.mod(time_remaining,60)))
+
 
                     with open(self.file_path+'.static','a') as f:
                         f.write(str([int(x),int(y),temp_bed, temp_chamber,FBGs_pristine,FBGs_pressured])+'\n')
