@@ -1,8 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import minimize
+from scipy.optimize import root, least_squares
 from mpl_toolkits.mplot3d import Axes3D  # для 3D-графика
+import pickle
 
+calibration_file_path=r"F:\!Projects\!WIM\2026.04.26 data\static\weight=160 g try 4.setup_calib"
 # ----------------------------------------------------------------------
 # 1. Модель отклика датчика (гауссиан)
 def response_function(x, A, mu, sigma):
@@ -11,58 +13,74 @@ def response_function(x, A, mu, sigma):
 
 # ----------------------------------------------------------------------
 # 2. Целевая функция (сумма квадратов невязок)
-def cost_function(x, calibration, measured_shifts, channels, fbgs_per_channel):
-    """x = [W, xl, xr]"""
+def residuals_function(x, calibration, measured_shifts, channels, fbgs_per_channel):
+    """x = [W, xl, xr]
+    Возвращает вектор невязок r_i = measured_i - predicted_i
+    """
     W, xl, xr = x
-    cost = 0.0
+    residuals = []
+
     for ch in channels:
         for fbg in fbgs_per_channel[ch]:
-            # Получаем параметры модели для этого датчика: (A, mu, sigma)
-            params = calibration[ch][fbg]['params']
-            A, mu, sigma = params
-            # Предсказанный сдвиг от колёсной пары
+            A, mu, sigma = calibration[ch][fbg]['params']
+
             predicted = (W / 2.0) * (response_function(xl, A, mu, sigma) +
-                                     response_function(xr, A, mu, sigma))
-            # Измеренный сдвиг
+                                       response_function(xr, A, mu, sigma))
             measured = measured_shifts[ch][fbg]
-            cost += (measured - predicted) ** 2
-    return cost
+            residuals.append(measured - predicted)  # важно: измерение - предсказание
+
+    return np.array(residuals, dtype=float)
 
 # ----------------------------------------------------------------------
 # 3. Генерация синтетических данных
-np.random.seed(42)  # для воспроизводимости
+np.random.seed(2)  # для воспроизводимости
 
 # Конфигурация датчиков: каналы и FBG
 channels = [1, 2]                     # два канала
-fbgs_per_channel = {1: [1, 2, 3],     # в канале 1 три FBG
-                    2: [1, 2]}        # в канале 2 два FBG
+fbgs_per_channel = {1: [1, 2, 3,4,5],     # в канале 1 три FBG
+                    2: [1, 2,3,4,5]}        # в канале 2 два FBG
 
 # Истинные значения искомых параметров (на основе которых сгенерируем "измерения")
-W_true = 75.0          # г
-xl_true = 120.0        # мм
-xr_true = 200.0        # мм (расстояние между колёсами 90 мм)
+W_true = 160          # г
+xl_true = -30        # мм
+xr_true = xl_true+50        # мм (расстояние между колёсами 90 мм)
 
+noise_level=0.00 # nm
 # Калибровочные параметры для каждого датчика (гауссиан)
 # Для упрощения зададим вручную, но можно было бы сгенерировать случайно.
-calibration = {}
-for ch in channels:
-    calibration[ch] = {}
-    for fbg in fbgs_per_channel[ch]:
-        # Каждый датчик имеет свою чувствительность (A), центр (mu) и ширину (sigma)
-        # Центры mu разнесены, чтобы покрыть диапазон x от 0 до 300 мм
-        if ch == 1:
-            if fbg == 1:
-                params = (0.003, 100.0, 15.0)   # A, mu, sigma
-            elif fbg == 2:
-                params = (0.005, 150.0, 12.0)
-            else:  # fbg == 3
-                params = (0.004, 200.0, 18.0)
-        else:  # ch == 2
-            if fbg == 1:
-                params = (0.004, 130.0, 14.0)
-            else:  # fbg == 2
-                params = (0.004, 180.0, 16.0)
-        calibration[ch][fbg] = {'params': params, 'wavelength': None}  # wavelength не используется
+with open(calibration_file_path,'rb') as f:
+    calibration=pickle.load(f)
+
+
+# for ch in channels:
+#     calibration[ch] = {}
+#     for fbg in fbgs_per_channel[ch]:
+#         # Каждый датчик имеет свою чувствительность (A), центр (mu) и ширину (sigma)
+#         # Центры mu разнесены, чтобы покрыть диапазон x от 0 до 300 мм
+#         if ch == 1:
+#             if fbg == 1:
+#                 params = (0.001, -80, 15.0)   # A, mu, sigma
+#             elif fbg == 2:
+#                 params = (0.002, -60, 12.0)
+#             elif fbg == 3:
+#                 params = (0.001, 20.0, 12.0)
+#             elif fbg == 4:
+#                 params = (0.002, 50.0, 12.0)
+#             elif fbg == 5:
+#                 params = (0.0015, 150.0, 12.0)
+            
+#         elif ch == 2:
+#             if fbg == 1:
+#                 params = (0.001, 100.0, 15.0)   # A, mu, sigma
+#             elif fbg == 2:
+#                 params = (0.002, 150.0, 12.0)
+#             elif fbg == 3:
+#                 params = (0.003, 150.0, 12.0)
+#             elif fbg == 4:
+#                 params = (0.002, 150.0, 12.0)
+#             elif fbg == 5:
+#                 params = (0.001, 150.0, 12.0)
+#         calibration[ch][fbg] = {'params': params, 'wavelength': None}  # wavelength не используется
 
 # Генерируем "измеренные" сдвиги: вычисляем точные значения по истинным параметрам,
 # затем добавляем гауссов шум.
@@ -74,7 +92,7 @@ for ch in channels:
         exact = (W_true / 2.0) * (response_function(xl_true, A, mu, sigma) +
                                   response_function(xr_true, A, mu, sigma))
         # Добавляем шум со стандартным отклонением 0.05
-        noise = np.random.normal(0, 0.010)
+        noise = np.random.normal(0, noise_level)
         measured_shifts[ch][fbg] = exact + noise
 
 # Выведем для проверки
@@ -88,32 +106,34 @@ for ch in channels:
 # Список для хранения истории (каждый элемент: [W, xl, xr, cost])
 history = []
 
-def callback(xk):
-    """Функция, вызываемая на каждой итерации оптимизатора.
-       xk — текущие значения переменных (массив)"""
-    cost_val = cost_function(xk, calibration, measured_shifts, channels, fbgs_per_channel)
-    history.append([xk[0], xk[1], xk[2], cost_val])
 
 # Начальное приближение
-x0 = [100.0, 120.0, 215.0]   # W=100, xl=150, xr=235 (ширина ~85 мм)
+x_0=30
+wheelset_width=80
+x0=[200,x_0,x_0+wheelset_width]
+bounds=[(0,1000),(-110,110),(-110+wheelset_width,100+wheelset_width)]
 # Запуск минимизации (метод Nelder-Mead)
-result = minimize(
-    cost_function,
-    x0,
-    args=(calibration, measured_shifts, channels, fbgs_per_channel),
-    # method='Nelder-Mead',
-    # method='BFGS',
-    # method='Newton-CG',
-    callback=callback,
-    options={'maxiter': 500, 'disp': True}
+
+history = []
+
+def fun_for_ls(x):
+    r = residuals_function(x, calibration, measured_shifts, channels, fbgs_per_channel)
+    history.append([x[0], x[1], x[2], np.sum(r**2)])
+    return r
+
+result = least_squares(
+    fun_for_ls,
+    x0=x0,
+    bounds=([b[0] for b in bounds], [b[1] for b in bounds]),
+    method='trf',  # обычно надежный
+    max_nfev=2000
 )
 
-# Результаты
 W_opt, xl_opt, xr_opt = result.x
-print("\n=== Результат оптимизации ===")
+print("\n=== Результат поиска 'корня' (least_squares по невязкам) ===")
 print(f"Истинные значения: W = {W_true}, xl = {xl_true}, xr = {xr_true}")
 print(f"Найденные значения: W = {W_opt:.3f}, xl = {xl_opt:.3f}, xr = {xr_opt:.3f}")
-print(f"Значение функции стоимости: {result.fun:.6f}")
+print(f"||residuals||^2 = {result.cost*2:.6f}")  # cost=0.5*||r||^2 по соглашению least_squares
 print(f"Сообщение: {result.message}")
 
 # ----------------------------------------------------------------------
@@ -180,3 +200,8 @@ ax.set_zlabel('xr (мм)')
 ax.set_title('Траектория оптимизации в пространстве (W, xl, xr)')
 ax.legend()
 plt.show()
+#%%
+x_test = np.array([W_true, xl_true, xr_true], dtype=float)
+r_test = residuals_function(x_test, calibration, measured_shifts, channels, fbgs_per_channel)
+print("Max |residual|:", np.max(np.abs(r_test)))
+print("Sum residual^2:", np.sum(r_test**2))
