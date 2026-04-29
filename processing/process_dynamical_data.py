@@ -63,6 +63,7 @@ class Dynamical_meas_processor(QObject):
         for ch in self.channels_to_plot:
             plt.figure()
             colors = plt.cm.tab10.colors
+            plt.title(self.calibration_file_path)
             plt.xlabel('Position, mm')
             plt.ylabel('Response, nm/g')
             coords=np.arange(-300,300)
@@ -110,6 +111,7 @@ class Dynamical_meas_processor(QObject):
         time_window=0.1
         time_window_index=int(time_window/(self.times[1] - self.times[0]))
         dict_shifts={}
+        max_response=[0,0,0]
         for ch in self.channels_to_plot:
             dict_shifts[ch]={}
             for ii,FBG in enumerate(self.FBGs_to_plot[ch-1]):
@@ -117,30 +119,35 @@ class Dynamical_meas_processor(QObject):
                 index_max=np.argmax(abs(self.channels[ch][FBG]-initial_wavelength))
                 maximum_wavelength=np.mean(self.channels[ch][FBG][int(index_max-time_window/2):int(index_max+time_window/2)])
                 dict_shifts[ch][FBG]=maximum_wavelength-initial_wavelength
+                if abs(max_response[0])<abs(dict_shifts[ch][FBG]):
+                    max_response=[dict_shifts[ch][FBG],ch,FBG]
                 # print(initial_wavelength,maximum_wavelength,FBG)
-        return dict_shifts
+        return dict_shifts,max_response
                              
 
             
     def _cost_function(self,x,dict_calibration,dict_shifts):
-        weight, x_left_wheel, x_right_wheel=x
+        weight, x_left_wheel, wheelset_width=x
         cost=0
         for ch in self.channels_to_plot:
             for ii,FBG in enumerate(self.FBGs_to_plot[ch-1]):
-                predicted_signal=weight/2*(FBG_static_response_function(x_left_wheel,*dict_calibration[ch][FBG]['params'])+FBG_static_response_function(x_right_wheel,*dict_calibration[ch][FBG]['params']))
+                predicted_signal=weight/2*(FBG_static_response_function(x_left_wheel,*dict_calibration[ch][FBG]['params'])+FBG_static_response_function(x_left_wheel+wheelset_width,*dict_calibration[ch][FBG]['params']))
                 cost+=(dict_shifts[ch][FBG]-predicted_signal)**2
                 # print(predicted_signal,dict_shifts[ch][FBG],ch,FBG)
         return cost
  
     def calculate_weight(self):
-        dict_shifts=self.get_maximum_shifts_from_experiment()
-        x_0=0
-        x0=[200,x_0,x_0+wheelset_width]
-        bounds=[(0,1000),(-110,110),(-110+wheelset_width,100+wheelset_width)]
-        result = minimize(self._cost_function,  x0,  bounds=bounds, args=(self.dict_calibration, dict_shifts),method='Nelder-Mead')
-        weight,x_l,x_r=result.x
-        print(weight,x_l,x_r)
-        return weight,x_l,x_r,result.message
+        dict_shifts,max_response=self.get_maximum_shifts_from_experiment()
+        x_l_guess=self.dict_calibration[max_response[1]][max_response[2]]['params'][1]
+        weight_guess=max_response[0]/self.dict_calibration[max_response[1]][max_response[2]]['params'][0]
+        wheelset_width_guess=20
+        guess=[weight_guess,x_l_guess,wheelset_width_guess]
+        bounds=[(0,1000),(-105,105),(0,200)]
+        result = minimize(self._cost_function,  guess,  bounds=bounds, args=(self.dict_calibration, dict_shifts))
+        weight_opt,x_l_opt,wheelset_width_opt=result.x
+        x_r_opt=x_l_opt+wheelset_width_opt
+        print(weight_opt,x_l_opt,x_r_opt)
+        return weight_opt,x_l_opt,x_r_opt,result.message
     
     def calculate_weight_from_file(self,file_path):
         try:
@@ -197,12 +204,12 @@ def process_folder(p:Dynamical_meas_processor, path_to_folder:str):
 if __name__=='__main__':
     #
     # path_to_file=r"D:\Ilya\2026.04.16 dynamical measurements\160 g\x=170 mm forward N=1.fbgs"
-    calibration_file_path=r"D:\Ilya\2026.04.26\static\weight=160 g try 4.setup_calib"
+    calibration_file_path=r"F:\!Projects\!WIM\2026.04.26 data\static\weight=160 g try 4.setup_calib"
     p=Dynamical_meas_processor(None, [1,2], [[1,2,3,4,5],[1,2,3,4,5]],calibration_file_path=calibration_file_path)
     # p.load_data()
     # p.plot()
     # p.calculate_weight()
-    path_to_folder=r'D:\Ilya\2026.04.26\dynamical'
+    path_to_folder=r'F:\!Projects\!WIM\2026.04.26 data\dynamical'
     process_folder(p, path_to_folder)
     
 
