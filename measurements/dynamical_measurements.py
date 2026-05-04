@@ -14,7 +14,7 @@ __version__='2.1'
 __date__ = '2026.04.16'
 
 
-MAX_SIZE_QUEUE=5000
+MAX_SIZE_QUEUE=1000
 time_to_save_factor=1.8
 
 class Dynamical_measurement_params():

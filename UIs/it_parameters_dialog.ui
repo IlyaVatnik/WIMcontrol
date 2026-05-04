@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>339</width>
-    <height>668</height>
+    <height>767</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -135,7 +135,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>300</y>
+     <y>320</y>
      <width>201</width>
      <height>181</height>
     </rect>
@@ -201,9 +201,9 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>490</y>
+     <y>510</y>
      <width>201</width>
-     <height>141</height>
+     <height>231</height>
     </rect>
    </property>
    <property name="title">
@@ -238,6 +238,23 @@
      <widget class="QLineEdit" name="lineEdit_max_wl_jump_nm">
       <property name="text">
        <string>0.5</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="label_34">
+      <property name="text">
+       <string>Repetition rate, Hz</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLineEdit" name="lineEdit_rep_rate">
+      <property name="text">
+       <string>2000</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>

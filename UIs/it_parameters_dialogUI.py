@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(339, 668)
+        Dialog.resize(339, 767)
         self.buttonBox = QtWidgets.QDialogButtonBox(Dialog)
         self.buttonBox.setGeometry(QtCore.QRect(230, 50, 81, 61))
         self.buttonBox.setOrientation(QtCore.Qt.Vertical)
@@ -62,7 +62,7 @@ class Ui_Dialog(object):
         self.verticalLayout_2.addWidget(self.lineEdit_FBGs)
         self.verticalLayout_3.addLayout(self.verticalLayout_2)
         self.groupBox_3 = QtWidgets.QGroupBox(Dialog)
-        self.groupBox_3.setGeometry(QtCore.QRect(10, 300, 201, 181))
+        self.groupBox_3.setGeometry(QtCore.QRect(10, 320, 201, 181))
         self.groupBox_3.setObjectName("groupBox_3")
         self.verticalLayout_4 = QtWidgets.QVBoxLayout(self.groupBox_3)
         self.verticalLayout_4.setObjectName("verticalLayout_4")
@@ -88,7 +88,7 @@ class Ui_Dialog(object):
         self.lineEdit_thresholds.setObjectName("lineEdit_thresholds")
         self.verticalLayout_4.addWidget(self.lineEdit_thresholds)
         self.groupBox_4 = QtWidgets.QGroupBox(Dialog)
-        self.groupBox_4.setGeometry(QtCore.QRect(10, 490, 201, 141))
+        self.groupBox_4.setGeometry(QtCore.QRect(10, 510, 201, 231))
         self.groupBox_4.setObjectName("groupBox_4")
         self.verticalLayout_5 = QtWidgets.QVBoxLayout(self.groupBox_4)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
@@ -106,6 +106,13 @@ class Ui_Dialog(object):
         self.lineEdit_max_wl_jump_nm.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.lineEdit_max_wl_jump_nm.setObjectName("lineEdit_max_wl_jump_nm")
         self.verticalLayout_5.addWidget(self.lineEdit_max_wl_jump_nm)
+        self.label_34 = QtWidgets.QLabel(self.groupBox_4)
+        self.label_34.setObjectName("label_34")
+        self.verticalLayout_5.addWidget(self.label_34)
+        self.lineEdit_rep_rate = QtWidgets.QLineEdit(self.groupBox_4)
+        self.lineEdit_rep_rate.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.lineEdit_rep_rate.setObjectName("lineEdit_rep_rate")
+        self.verticalLayout_5.addWidget(self.lineEdit_rep_rate)
 
         self.retranslateUi(Dialog)
         self.buttonBox.accepted.connect(Dialog.accept) # type: ignore
@@ -137,6 +144,8 @@ class Ui_Dialog(object):
         self.lineEdit_averaging_time_for_single_FBG_measurement.setText(_translate("Dialog", "0.5"))
         self.label_33.setText(_translate("Dialog", "Max allowed shift of FBG, nm"))
         self.lineEdit_max_wl_jump_nm.setText(_translate("Dialog", "0.5"))
+        self.label_34.setText(_translate("Dialog", "Repetition rate, Hz"))
+        self.lineEdit_rep_rate.setText(_translate("Dialog", "2000"))
 
 
 if __name__ == "__main__":
