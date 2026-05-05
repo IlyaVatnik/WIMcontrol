@@ -2,8 +2,8 @@ from PyQt5.QtCore import pyqtSignal, QObject
 import time
 import numpy as np
 
-__version__='1.4'
-__date__ = '2026.04.03'
+__version__='1.5'
+__date__ = '2026.05.05'
 
 class Static_measurement_params():
     def __init__(self):      
@@ -133,7 +133,7 @@ class Static_measurement(QObject):
                     if not self.is_running:
                         self.S_print_error.emit('Scanning interrupted')
                         return
-                        
+            self.printer.move_center()
             self.S_print.emit('Static scanning finished')
             self.S_finished.emit()
             

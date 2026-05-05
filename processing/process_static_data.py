@@ -333,10 +333,10 @@ def FBG_static_response_function(x,A,x_0,w):
 
 #%%
 if __name__=='__main__':
-    path_to_file=r"D:\Ilya\WIMcontrol\data\weight=160 g try 4.static"
-    p=Static_meas_processor(path_to_file, channels_to_plot=[1,2], FBGs_to_plot=[[1,2,3,4,5],[1,2,3,4,5]])
-    # p.plot_all_3d_plots()
-    p.create_calibration_curves()
+    path_to_file=r"D:\Ilya\2026.05.05\Static\weight=87 g.static"
+    p=Static_meas_processor(path_to_file, channels_to_plot=[1,2,3], FBGs_to_plot=[[1,2,3,4,5],[1,2,3,4,5],[2]])
+    p.plot_all_3d_plots()
+    # p.create_calibration_curves()
     # p.plot_along_coord(250, 'Y', 1, 1)
 
 # plot_3d(coords,temps_bed)

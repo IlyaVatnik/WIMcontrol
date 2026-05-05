@@ -10,8 +10,8 @@ import numpy as np
 from AFR_interrogator.FBGRecorder import record_to_file_from_queue, FrameFanout,record_spectra_to_file
 from queue import Queue
 
-__version__='2.1'
-__date__ = '2026.04.16'
+__version__='2.2'
+__date__ = '2026.05.05'
 
 
 MAX_SIZE_QUEUE=1000
@@ -254,7 +254,8 @@ class Dynamical_measurement(QObject):
                     if not self.is_running:
                         self.interrupted('Scanning interrupted')
                         return
-                        
+            
+            self.printer.move_center()
             self.S_finished.emit()
             self.interrupted('Dynamical scanning finished',error=False)
         except Exception as e:
