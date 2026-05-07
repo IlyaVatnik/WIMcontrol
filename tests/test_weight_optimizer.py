@@ -44,8 +44,8 @@ def test_optimizer(W_true,xl_true,xr_true,calibration,
                   A, mu, sigma = calibration[ch][fbg]['params']
                   exact = (W_true / 2.0) * (FBG_response(xl_true, A, mu, sigma) +
                                             FBG_response(xr_true, A, mu, sigma))
-                  # Добавляем шум со стандартным отклонением 0.05
-                  noise = np.random.normal(0, noise_level)
+                  # Добавляем шум со стандартным отклонением
+                  noise = np.random.normal(scale=noise_level)
                   measured_shifts[ch][fbg] = exact + noise
                   if abs(max_response[0])<abs(measured_shifts[ch][fbg]):
                       max_response=[measured_shifts[ch][fbg],ch,fbg]
@@ -66,7 +66,7 @@ def test_optimizer(W_true,xl_true,xr_true,calibration,
            history.append([xk[0], xk[1], xk[2], cost_val])
            
 
-    np.random.seed(42)  # для воспроизводимости
+    # np.random.seed(42)  # для воспроизводимости
     channels = [int(a) for a in  calibration.keys()]                     # два канала
     fbgs_per_channel={}
     for ch in channels:
@@ -79,7 +79,7 @@ def test_optimizer(W_true,xl_true,xr_true,calibration,
     
     x_l_guess=calibration[max_response[1]][max_response[2]]['params'][1]
     weight_guess=max_response[0]/calibration[max_response[1]][max_response[2]]['params'][0]
-    wheelset_width_guess=10
+    wheelset_width_guess=40
     
     guess=[weight_guess,x_l_guess,wheelset_width_guess]
     bounds=[(0,1000),(-110,110),(0,200)]
@@ -168,7 +168,7 @@ def plot_calibration(calibration):
     for ch in channels:
         fbgs_per_channel[ch] =[int(a) for a in calibration[ch].keys()]
     
-    x=np.arange(-100,100)
+    x=np.arange(-130,130)
     total_response=np.zeros(len(x))
     colors = plt.cm.tab10.colors
     plt.figure()

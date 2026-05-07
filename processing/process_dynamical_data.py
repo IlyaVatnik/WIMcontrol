@@ -10,7 +10,7 @@ __version__='2.3'
 __date__ = '2026.04.26'
 
 
-wheelset_width=85
+
 
 class Dynamical_meas_processor(QObject):
     S_print=pyqtSignal(str) # signal used to print into main text browser
@@ -78,7 +78,9 @@ class Dynamical_meas_processor(QObject):
             plt.tight_layout()
             plt.show()
 #%%
-    def plot(self):
+    def plot(self, show_max_shifts=False):
+        if show_max_shifts:
+            dict_shifts,max_response=self.get_maximum_shifts_from_experiment()
         colors = plt.cm.tab10.colors
         self.figs_fbgs=[]
         for ch in self.channels_to_plot:
@@ -91,6 +93,8 @@ class Dynamical_meas_processor(QObject):
                 for ii,FBG in enumerate(self.FBGs_to_plot[ch-1]):
                     axes[ii].plot(self.times - self.times[0], self.channels[ch][FBG],color=colors[ii % len(colors)])
                     axes[ii].set_title(f"FBG {FBG}", loc="left", fontsize=10, pad=2)
+                    if show_max_shifts:
+                        axes[ii].axhline( self.channels[ch][FBG][0]+dict_shifts[ch][FBG],linestyle='--',color=colors[ii % len(colors)])
                 plt.suptitle('ch {} of {}, v_y={} mm/s'.format(ch, self.file_name.split('.')[0], self.other_params['y_velocity']))
                                         
 
@@ -133,6 +137,7 @@ class Dynamical_meas_processor(QObject):
             for ii,FBG in enumerate(self.FBGs_to_plot[ch-1]):
                 predicted_signal=weight/2*(FBG_static_response_function(x_left_wheel,*dict_calibration[ch][FBG]['params'])+FBG_static_response_function(x_left_wheel+wheelset_width,*dict_calibration[ch][FBG]['params']))
                 cost+=(dict_shifts[ch][FBG]-predicted_signal)**2
+                # cost+=((dict_shifts[ch][FBG]-predicted_signal)/predicted_signal)**2
                 # print(predicted_signal,dict_shifts[ch][FBG],ch,FBG)
         return cost
  
@@ -140,7 +145,7 @@ class Dynamical_meas_processor(QObject):
         dict_shifts,max_response=self.get_maximum_shifts_from_experiment()
         x_l_guess=self.dict_calibration[max_response[1]][max_response[2]]['params'][1]
         weight_guess=max_response[0]/self.dict_calibration[max_response[1]][max_response[2]]['params'][0]
-        wheelset_width_guess=20
+        wheelset_width_guess=50
         guess=[weight_guess,x_l_guess,wheelset_width_guess]
         bounds=[(0,1000),(-105,105),(0,200)]
         result = minimize(self._cost_function,  guess,  bounds=bounds, args=(self.dict_calibration, dict_shifts))
@@ -202,15 +207,22 @@ def process_folder(p:Dynamical_meas_processor, path_to_folder:str):
 
 #%%
 if __name__=='__main__':
-    #
-    # path_to_file=r"D:\Ilya\2026.04.16 dynamical measurements\160 g\x=170 mm forward N=1.fbgs"
-    calibration_file_path=r"F:\!Projects\!WIM\2026.04.26 data\static\weight=160 g try 4.setup_calib"
-    p=Dynamical_meas_processor(None, [1,2], [[1,2,3,4,5],[1,2,3,4,5]],calibration_file_path=calibration_file_path)
-    # p.load_data()
-    # p.plot()
-    # p.calculate_weight()
-    path_to_folder=r'F:\!Projects\!WIM\2026.04.26 data\dynamical'
-    process_folder(p, path_to_folder)
+    
+    path_to_file=r"F:\!Projects\!WIM\2026.05.06\80 g\x=0 mm forward N=3.fbgs"
+    
+    
+    #%% 
+    # path_to_folder=r'F:\!Projects\!WIM\2026.05.06\80 g'
+    # path_to_file=None
+    #%%
+    calibration_file_path=r"F:\!Projects\!WIM\WIMcontrol\calibrations\weight=87 g 5 слоев.setup_calib"
+    p=Dynamical_meas_processor(path_to_file, [1,2], [[1,2,3,4,5],[1,2,3,4,5]],calibration_file_path=calibration_file_path)
+    #%%
+    p.load_data()
+    p.plot(show_max_shifts=True)
+    p.calculate_weight()
+    #%%
+    # process_folder(p, path_to_folder)
     
 
 
