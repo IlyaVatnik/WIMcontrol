@@ -79,7 +79,7 @@ def test_optimizer(W_true,xl_true,xr_true,calibration,
     
     x_l_guess=calibration[max_response[1]][max_response[2]]['params'][1]
     weight_guess=max_response[0]/calibration[max_response[1]][max_response[2]]['params'][0]
-    wheelset_width_guess=40
+    wheelset_width_guess=70
     
     guess=[weight_guess,x_l_guess,wheelset_width_guess]
     bounds=[(0,1000),(-110,110),(0,200)]
@@ -89,7 +89,7 @@ def test_optimizer(W_true,xl_true,xr_true,calibration,
         guess,
         bounds=bounds,
         args=(calibration, measured_shifts, channels, fbgs_per_channel),
-        method='Nelder-Mead',
+        # method='Nelder-Mead',
         # method='BFGS',
         # method='Newton-CG',
         callback=callback,

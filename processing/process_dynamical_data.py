@@ -80,7 +80,7 @@ class Dynamical_meas_processor(QObject):
 #%%
     def plot(self, show_max_shifts=False):
         if show_max_shifts:
-            dict_shifts,max_response=self.get_maximum_shifts_from_experiment()
+            dict_shifts,max_response,dict_initial_wavelengths=self.get_maximum_shifts_from_experiment()
         colors = plt.cm.tab10.colors
         self.figs_fbgs=[]
         for ch in self.channels_to_plot:
@@ -94,7 +94,9 @@ class Dynamical_meas_processor(QObject):
                     axes[ii].plot(self.times - self.times[0], self.channels[ch][FBG],color=colors[ii % len(colors)])
                     axes[ii].set_title(f"FBG {FBG}", loc="left", fontsize=10, pad=2)
                     if show_max_shifts:
-                        axes[ii].axhline( self.channels[ch][FBG][0]+dict_shifts[ch][FBG],linestyle='--',color=colors[ii % len(colors)])
+                        axes[ii].axhline(dict_initial_wavelengths[ch][FBG]+dict_shifts[ch][FBG],linestyle='--',color=colors[ii % len(colors)])
+                        axes[ii].axhline( dict_initial_wavelengths[ch][FBG],linestyle='--',color=colors[ii % len(colors)])
+                        
                 plt.suptitle('ch {} of {}, v_y={} mm/s'.format(ch, self.file_name.split('.')[0], self.other_params['y_velocity']))
                                         
 
@@ -115,18 +117,21 @@ class Dynamical_meas_processor(QObject):
         time_window=0.1
         time_window_index=int(time_window/(self.times[1] - self.times[0]))
         dict_shifts={}
-        max_response=[0,0,0]
+        dict_initial_wavelengths={}
+        max_rel_response=[0,0,0]
         for ch in self.channels_to_plot:
             dict_shifts[ch]={}
+            dict_initial_wavelengths[ch]={}
             for ii,FBG in enumerate(self.FBGs_to_plot[ch-1]):
                 initial_wavelength=np.mean(self.channels[ch][FBG][0:time_window_index])
+                dict_initial_wavelengths[ch][FBG]=initial_wavelength
                 index_max=np.argmax(abs(self.channels[ch][FBG]-initial_wavelength))
                 maximum_wavelength=np.mean(self.channels[ch][FBG][int(index_max-time_window/2):int(index_max+time_window/2)])
                 dict_shifts[ch][FBG]=maximum_wavelength-initial_wavelength
-                if abs(max_response[0])<abs(dict_shifts[ch][FBG]):
-                    max_response=[dict_shifts[ch][FBG],ch,FBG]
+                if abs(max_rel_response[0])<abs(dict_shifts[ch][FBG]/self.dict_calibration[ch][FBG]['params'][0]):
+                    max_rel_response=[dict_shifts[ch][FBG]/dict_shifts[ch][FBG]/self.dict_calibration[ch][FBG]['params'][0],ch,FBG]
                 # print(initial_wavelength,maximum_wavelength,FBG)
-        return dict_shifts,max_response
+        return dict_shifts,max_rel_response,dict_initial_wavelengths
                              
 
             
@@ -142,13 +147,16 @@ class Dynamical_meas_processor(QObject):
         return cost
  
     def calculate_weight(self):
-        dict_shifts,max_response=self.get_maximum_shifts_from_experiment()
-        x_l_guess=self.dict_calibration[max_response[1]][max_response[2]]['params'][1]
-        weight_guess=max_response[0]/self.dict_calibration[max_response[1]][max_response[2]]['params'][0]
-        wheelset_width_guess=50
+        dict_shifts,max_rel_response,dict_initial_wavelengths=self.get_maximum_shifts_from_experiment()
+        x_l_guess=self.dict_calibration[max_rel_response[1]][max_rel_response[2]]['params'][1]
+        weight_guess=max_rel_response[0]
+        wheelset_width_guess=60
         guess=[weight_guess,x_l_guess,wheelset_width_guess]
         bounds=[(0,1000),(-105,105),(0,200)]
-        result = minimize(self._cost_function,  guess,  bounds=bounds, args=(self.dict_calibration, dict_shifts))
+        result = minimize(self._cost_function,  guess,  
+                          bounds=bounds,
+                          args=(self.dict_calibration, dict_shifts))
+
         weight_opt,x_l_opt,wheelset_width_opt=result.x
         x_r_opt=x_l_opt+wheelset_width_opt
         print(weight_opt,x_l_opt,x_r_opt)
@@ -208,21 +216,21 @@ def process_folder(p:Dynamical_meas_processor, path_to_folder:str):
 #%%
 if __name__=='__main__':
     
-    path_to_file=r"F:\!Projects\!WIM\2026.05.06\80 g\x=0 mm forward N=3.fbgs"
+    # path_to_file=r"D:\Ilya\2026.05.06\80 g\x=0 mm forward N=0.fbgs"
     
     
     #%% 
-    # path_to_folder=r'F:\!Projects\!WIM\2026.05.06\80 g'
-    # path_to_file=None
+    path_to_folder=r"D:\Ilya\2026.05.06\80 g"
+    path_to_file=None
     #%%
-    calibration_file_path=r"F:\!Projects\!WIM\WIMcontrol\calibrations\weight=87 g 5 слоев.setup_calib"
+    calibration_file_path=r"D:\Ilya\WIMcontrol\calibrations\weight=87 g 5 слоев.setup_calib"
     p=Dynamical_meas_processor(path_to_file, [1,2], [[1,2,3,4,5],[1,2,3,4,5]],calibration_file_path=calibration_file_path)
     #%%
-    p.load_data()
-    p.plot(show_max_shifts=True)
-    p.calculate_weight()
+    # p.load_data()
+    # p.plot(show_max_shifts=True)
+    # p.calculate_weight()
     #%%
-    # process_folder(p, path_to_folder)
+    process_folder(p, path_to_folder)
     
 
 
