@@ -6,11 +6,12 @@ from PyQt5.QtCore import QObject,pyqtSignal
 from AFR_interrogator.FBGRecorder import read_fbg_stream_raw_lp
 from scipy.optimize import minimize
 import os
-__version__='2.3'
-__date__ = '2026.04.26'
+
+__version__='2.4'
+__date__='2026.05.15'
 
 
-
+WHEELSET=59
 
 class Dynamical_meas_processor(QObject):
     S_print=pyqtSignal(str) # signal used to print into main text browser
@@ -118,47 +119,72 @@ class Dynamical_meas_processor(QObject):
         time_window_index=int(time_window/(self.times[1] - self.times[0]))
         dict_shifts={}
         dict_initial_wavelengths={}
-        max_rel_response=[0,0,0]
+        
         for ch in self.channels_to_plot:
             dict_shifts[ch]={}
             dict_initial_wavelengths[ch]={}
+            
             for ii,FBG in enumerate(self.FBGs_to_plot[ch-1]):
                 initial_wavelength=np.mean(self.channels[ch][FBG][0:time_window_index])
                 dict_initial_wavelengths[ch][FBG]=initial_wavelength
                 index_max=np.argmax(abs(self.channels[ch][FBG]-initial_wavelength))
                 maximum_wavelength=np.mean(self.channels[ch][FBG][int(index_max-time_window/2):int(index_max+time_window/2)])
                 dict_shifts[ch][FBG]=maximum_wavelength-initial_wavelength
-                if abs(max_rel_response[0])<abs(dict_shifts[ch][FBG]/self.dict_calibration[ch][FBG]['params'][0]):
-                    max_rel_response=[dict_shifts[ch][FBG]/dict_shifts[ch][FBG]/self.dict_calibration[ch][FBG]['params'][0],ch,FBG]
                 # print(initial_wavelength,maximum_wavelength,FBG)
-        return dict_shifts,max_rel_response,dict_initial_wavelengths
+                
+        return dict_shifts,dict_initial_wavelengths
                              
-
+    
             
-    def _cost_function(self,x,dict_calibration,dict_shifts):
+    def _cost_function(self,x,dict_calibration,dict_relative_shifts):
         weight, x_left_wheel, wheelset_width=x
+        # weight, x_left_wheel, x_right_wheel=x
+        # weight, x_left_wheel=x
+
         cost=0
         for ch in self.channels_to_plot:
             for ii,FBG in enumerate(self.FBGs_to_plot[ch-1]):
-                predicted_signal=weight/2*(FBG_static_response_function(x_left_wheel,*dict_calibration[ch][FBG]['params'])+FBG_static_response_function(x_left_wheel+wheelset_width,*dict_calibration[ch][FBG]['params']))
-                cost+=(dict_shifts[ch][FBG]-predicted_signal)**2
+                predicted_signal_relative=weight/2/dict_calibration[ch][FBG]['params'][0]*(FBG_static_response_function(x_left_wheel,*dict_calibration[ch][FBG]['params'])+FBG_static_response_function(x_left_wheel+wheelset_width,*dict_calibration[ch][FBG]['params']))
+                cost+=abs(dict_relative_shifts[ch][FBG]-predicted_signal_relative)**2
                 # cost+=((dict_shifts[ch][FBG]-predicted_signal)/predicted_signal)**2
                 # print(predicted_signal,dict_shifts[ch][FBG],ch,FBG)
         return cost
  
+    def get_relative_shifts(self,dict_shifts,dict_calib):
+        dict_relative_shifts={}
+        for ch in self.channels_to_plot:
+            dict_relative_shifts[ch]={}
+            for ii,FBG in enumerate(self.FBGs_to_plot[ch-1]):
+                dict_relative_shifts[ch][FBG]=dict_shifts[ch][FBG]/dict_calib[ch][FBG]['params'][0]
+        return dict_relative_shifts
+
+    
+    def get_initial_guess(self,dict_relative_shifts,dict_calib):
+        k,l,w1=get_nth_largest_with_keys(dict_relative_shifts,1)
+        x1=self.dict_calibration[k][l]['params'][1]
+        k,l,w2=get_nth_largest_with_keys(dict_relative_shifts,2)
+        x2=self.dict_calibration[k][l]['params'][1]
+        x_l_guess=np.min((x1,x2))
+        x_r_guess=np.max((x1,x2))
+        weight_guess=w1+w2
+        wheelset_guess=x_r_guess-x_l_guess
+        return [weight_guess,x_l_guess,wheelset_guess]
+        # return [weight_guess,x_l_guess]
+    
     def calculate_weight(self):
-        dict_shifts,max_rel_response,dict_initial_wavelengths=self.get_maximum_shifts_from_experiment()
-        x_l_guess=self.dict_calibration[max_rel_response[1]][max_rel_response[2]]['params'][1]
-        weight_guess=max_rel_response[0]
-        wheelset_width_guess=60
-        guess=[weight_guess,x_l_guess,wheelset_width_guess]
-        bounds=[(0,1000),(-105,105),(0,200)]
+        dict_shifts,dict_initial_wavelengths=self.get_maximum_shifts_from_experiment()
+        dict_relative_shifts=self.get_relative_shifts(dict_shifts, self.dict_calibration)
+        guess=self.get_initial_guess(dict_relative_shifts,self.dict_calibration)
+        bounds=[(0,1000),(-105,80),(30,80)]
+        # bounds=[(0,1000),(-105,80)]
         result = minimize(self._cost_function,  guess,  
                           bounds=bounds,
-                          args=(self.dict_calibration, dict_shifts))
+                          args=(self.dict_calibration, dict_relative_shifts))
 
         weight_opt,x_l_opt,wheelset_width_opt=result.x
+        # weight_opt,x_l_opt=result.x
         x_r_opt=x_l_opt+wheelset_width_opt
+        # x_r_opt=x_l_opt+WHEELSET
         print(weight_opt,x_l_opt,x_r_opt)
         return weight_opt,x_l_opt,x_r_opt,result.message
     
@@ -212,7 +238,23 @@ def process_folder(p:Dynamical_meas_processor, path_to_folder:str):
     
     axes[3].set_xlabel('Position of the headtool, mm')
     
-
+    
+    
+def get_nth_largest_with_keys(d:dict, n):
+    items = []
+    
+    # собираем (внешний ключ, внутренний ключ, значение)
+    for outer_k, inner_dict in d.items():
+        for inner_k, value in inner_dict.items():
+            items.append((outer_k, inner_k, value))
+    
+    # сортируем по абсолютному значению (убывание)
+    items_sorted = sorted(items, key=lambda x: abs(x[2]), reverse=True)
+    
+    # возвращаем n-й элемент
+    if 0 < n <= len(items_sorted):
+        return items_sorted[n-1]
+    return None
 #%%
 if __name__=='__main__':
     
@@ -220,10 +262,12 @@ if __name__=='__main__':
     
     
     #%% 
-    path_to_folder=r"D:\Ilya\2026.05.06\80 g"
+    # path_to_folder=r"D:\Ilya\2026.05.06\80 g"
+    path_to_folder=r"F:\!Projects\!WIM\2026.05.06\80 g"
     path_to_file=None
     #%%
-    calibration_file_path=r"D:\Ilya\WIMcontrol\calibrations\weight=87 g 5 слоев.setup_calib"
+    # calibration_file_path=r"D:\Ilya\WIMcontrol\calibrations\weight=87 g 5 слоев.setup_calib"
+    calibration_file_path=r"F:\!Projects\!WIM\WIMcontrol\calibrations\weight=87 g 5 слоев.setup_calib"
     p=Dynamical_meas_processor(path_to_file, [1,2], [[1,2,3,4,5],[1,2,3,4,5]],calibration_file_path=calibration_file_path)
     #%%
     # p.load_data()

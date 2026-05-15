@@ -4,6 +4,8 @@ from scipy.optimize import minimize
 from mpl_toolkits.mplot3d import Axes3D  # для 3D-графика
 import pickle
 
+__version__='2'
+__date__='2026.05.15'
 
 # ----------------------------------------------------------------------
 # 1. Модель отклика датчика (гауссиан)
@@ -27,11 +29,11 @@ def test_optimizer(W_true,xl_true,xr_true,calibration,
                 # Получаем параметры модели для этого датчика: (A, mu, sigma)
                 params = calibration[ch][fbg]['params']
                 A, mu, sigma = params
-                # Предсказанный сдвиг от колёсной пары
+                # Предсказанный нормированный сдвиг от колёсной пары
                 predicted = (W / 2.0) * (FBG_response(xl, A, mu, sigma) +
-                                         FBG_response(xl+wheelset_width, A, mu, sigma))
-                # Измеренный сдвиг
-                measured = measured_shifts[ch][fbg]
+                                         FBG_response(xl+wheelset_width, A, mu, sigma))/calibration[ch][fbg]['params'][0]
+                # Измеренный нормированный сдвиг
+                measured = measured_shifts[ch][fbg]/calibration[ch][fbg]['params'][0]
                 cost += (measured - predicted) ** 2
         return cost
 
@@ -89,7 +91,7 @@ def test_optimizer(W_true,xl_true,xr_true,calibration,
         guess,
         bounds=bounds,
         args=(calibration, measured_shifts, channels, fbgs_per_channel),
-        # method='Nelder-Mead',
+        method='Nelder-Mead',
         # method='BFGS',
         # method='Newton-CG',
         callback=callback,

@@ -20,12 +20,13 @@ def create_calibration(N_FBG):
         calibration[1][ii+1]['params']=np.array([-0.002,x_i[ii],30])
     return calibration
 
-calibration=create_calibration(32)
+# calibration=create_calibration(10)
 #%%
 
 # calibration_file_path="D:\Ilya\WIMcontrol\calibrations\weight=87 g 5 слоев.setup_calib"
-# with open(calibration_file_path,'rb') as f:
-#     calibration=pickle.load(f)
+calibration_file_path=r"F:\!Projects\!WIM\WIMcontrol\calibrations\weight=87 g 5 слоев.setup_calib"
+with open(calibration_file_path,'rb') as f:
+    calibration=pickle.load(f)
     
 # calibration[1][6]={}
 # calibration[1][6]['params']=[-0.003,0,30]
@@ -46,7 +47,7 @@ calibration=create_calibration(32)
 plot_calibration(calibration)
 W_true = 160          # г
 xl_true_array = np.arange(-40,40,4)        # мм
-N=5
+N=20
 xl_true_array=np.repeat(xl_true_array, N)
 wheelset_width=50        # мм (расстояние между колёсами)
 
